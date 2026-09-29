@@ -1,21 +1,25 @@
+```python
 import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
+
 
 # ============================================================
 # CONFIGURAÇÃO DA PÁGINA
 # ============================================================
 
 st.set_page_config(
-    page_title="Dashboard de Efetivo",
+    page_title="Dashboard de Reserva",
     page_icon="📊",
     layout="wide"
 )
 
+st.title("📊 Dashboard de Reserva")
+
 
 # ============================================================
-# CONEXÃO COM GOOGLE SHEETS
+# CARREGAMENTO DOS DADOS
 # ============================================================
 
 @st.cache_data(ttl=300)
@@ -43,54 +47,11 @@ def carregar_dados():
 
     df = pd.DataFrame(dados)
 
-    # Normalizar nomes das colunas
-    df.columns = (
-        df.columns
-        .astype(str)
-        .str.replace("\n", " ", regex=False)
-        .str.strip()
-    )
-
-    # Renomear colunas
-    mapa_colunas = {
-        "Nº": "numero",
-        "Matrícula": "matricula",
-        "Posto / Graduação": "posto_graduacao",
-        "Nome": "nome",
-        "Reserva Requerimento": "reserva_requerimento",
-        "Reserva Compulsória": "reserva_compulsoria",
-        "Anos para Requerimento": "anos_requerimento",
-        "Anos para Compulsória": "anos_compulsoria",
-        "Ano de Requerimento": "ano_requerimento",
-        "Ano de Compulsória": "ano_compulsoria"
-    }
-
-    df = df.rename(columns=mapa_colunas)
-
-        # Converter campos numéricos
-    colunas_numericas = [
-        "numero",
-        "dias_requerimento",
-        "dias_compulsoria",
-        "ano_requerimento",
-        "ano_compulsoria"
-    ]
-
-    for coluna in colunas_numericas:
-        if coluna in df.columns:
-            df[coluna] = pd.to_numeric(
-                df[coluna],
-                errors="coerce"
-            )
-
-    st.write("Colunas recebidas da planilha:")
-    st.write(list(df.columns))
-
     return df
 
 
 # ============================================================
-# CARREGAR DADOS
+# LEITURA DA PLANILHA
 # ============================================================
 
 try:
@@ -107,13 +68,153 @@ except Exception as e:
 
 
 # ============================================================
-# TÍTULO
+# NORMALIZAÇÃO DOS NOMES DAS COLUNAS
 # ============================================================
 
-st.title("📊 Dashboard de Efetivo")
+df.columns = (
+    df.columns
+    .astype(str)
+    .str.replace("\n", " ", regex=False)
+    .str.strip()
+)
 
-st.caption(
-    "Dados atualizados diretamente da planilha Google Sheets."
+
+# ============================================================
+# MAPEAMENTO DAS COLUNAS
+# ============================================================
+
+mapa_colunas = {
+
+    "Nº": "numero",
+
+    "Matrícula": "matricula",
+
+    "Posto / Graduação": "posto_graduacao",
+
+    "Nome": "nome",
+
+    "Reserva Requerimento": "reserva_requerimento",
+
+    "Reserva Compulsória": "reserva_compulsoria",
+
+    "Dias para Requerimento": "dias_requerimento",
+
+    "Dias para Compulsória": "dias_compulsoria",
+
+    "Ano de Requerimento": "ano_requerimento",
+
+    "Ano de Compulsória": "ano_compulsoria"
+}
+
+
+df = df.rename(columns=mapa_colunas)
+
+
+# ============================================================
+# COMPATIBILIDADE COM POSSÍVEIS NOMES ANTIGOS
+# ============================================================
+
+# Caso alguma versão antiga da planilha ainda utilize
+# "Anos para Requerimento" ou "Anos para Compulsória",
+# convertemos para dias.
+
+if (
+    "dias_requerimento" not in df.columns
+    and "anos_requerimento" in df.columns
+):
+
+    df["dias_requerimento"] = (
+        pd.to_numeric(
+            df["anos_requerimento"],
+            errors="coerce"
+        ) * 365.25
+    )
+
+
+if (
+    "dias_compulsoria" not in df.columns
+    and "anos_compulsoria" in df.columns
+):
+
+    df["dias_compulsoria"] = (
+        pd.to_numeric(
+            df["anos_compulsoria"],
+            errors="coerce"
+        ) * 365.25
+    )
+
+
+# ============================================================
+# VERIFICAÇÃO DAS COLUNAS ESSENCIAIS
+# ============================================================
+
+colunas_obrigatorias = [
+    "dias_requerimento",
+    "dias_compulsoria",
+    "ano_requerimento",
+    "ano_compulsoria"
+]
+
+colunas_faltantes = [
+    coluna
+    for coluna in colunas_obrigatorias
+    if coluna not in df.columns
+]
+
+
+if colunas_faltantes:
+
+    st.error(
+        "A planilha não possui todas as colunas necessárias."
+    )
+
+    st.write("Colunas encontradas na planilha:")
+
+    st.code(
+        "\n".join(df.columns.astype(str).tolist())
+    )
+
+    st.error(
+        "Colunas ausentes: "
+        + ", ".join(colunas_faltantes)
+    )
+
+    st.stop()
+
+
+# ============================================================
+# CONVERSÃO NUMÉRICA
+# ============================================================
+
+colunas_numericas = [
+    "numero",
+    "dias_requerimento",
+    "dias_compulsoria",
+    "ano_requerimento",
+    "ano_compulsoria"
+]
+
+
+for coluna in colunas_numericas:
+
+    if coluna in df.columns:
+
+        df[coluna] = pd.to_numeric(
+            df[coluna],
+            errors="coerce"
+        )
+
+
+# ============================================================
+# CÁLCULO DOS ANOS
+# ============================================================
+
+df["anos_requerimento"] = (
+    df["dias_requerimento"] / 365.25
+)
+
+df["anos_compulsoria"] = (
+    df["dias_compulsoria"] / 365.25
 )
 
 
@@ -121,25 +222,36 @@ st.caption(
 # FILTROS
 # ============================================================
 
-st.sidebar.header("Filtros")
+st.sidebar.header("🔎 Filtros")
 
 
-# Posto / Graduação
+# ------------------------------------------------------------
+# FILTRO DE POSTO / GRADUAÇÃO
+# ------------------------------------------------------------
 
-postos = sorted(
-    df["posto_graduacao"]
-    .dropna()
-    .unique()
-    .tolist()
-)
+if "posto_graduacao" in df.columns:
 
-filtro_posto = st.sidebar.selectbox(
-    "Posto / Graduação",
-    ["Todos"] + postos
-)
+    postos = sorted(
+        df["posto_graduacao"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+
+    filtro_posto = st.sidebar.selectbox(
+        "Posto / Graduação",
+        ["Todos"] + postos
+    )
+
+else:
+
+    filtro_posto = "Todos"
 
 
-# Ano de Requerimento
+# ------------------------------------------------------------
+# FILTRO DE ANO DE REQUERIMENTO
+# ------------------------------------------------------------
 
 anos_requerimento = sorted(
     df["ano_requerimento"]
@@ -148,13 +260,16 @@ anos_requerimento = sorted(
     .tolist()
 )
 
+
 filtro_ano_requerimento = st.sidebar.selectbox(
     "Ano de Requerimento",
     ["Todos"] + anos_requerimento
 )
 
 
-# Ano de Compulsória
+# ------------------------------------------------------------
+# FILTRO DE ANO DE COMPULSÓRIA
+# ------------------------------------------------------------
 
 anos_compulsoria = sorted(
     df["ano_compulsoria"]
@@ -163,6 +278,7 @@ anos_compulsoria = sorted(
     .tolist()
 )
 
+
 filtro_ano_compulsoria = st.sidebar.selectbox(
     "Ano de Compulsória",
     ["Todos"] + anos_compulsoria
@@ -170,7 +286,7 @@ filtro_ano_compulsoria = st.sidebar.selectbox(
 
 
 # ============================================================
-# APLICAR FILTROS
+# APLICAÇÃO DOS FILTROS
 # ============================================================
 
 resultado = df.copy()
@@ -179,21 +295,24 @@ resultado = df.copy()
 if filtro_posto != "Todos":
 
     resultado = resultado[
-        resultado["posto_graduacao"] == filtro_posto
+        resultado["posto_graduacao"].astype(str)
+        == str(filtro_posto)
     ]
 
 
 if filtro_ano_requerimento != "Todos":
 
     resultado = resultado[
-        resultado["ano_requerimento"] == filtro_ano_requerimento
+        resultado["ano_requerimento"]
+        == filtro_ano_requerimento
     ]
 
 
 if filtro_ano_compulsoria != "Todos":
 
     resultado = resultado[
-        resultado["ano_compulsoria"] == filtro_ano_compulsoria
+        resultado["ano_compulsoria"]
+        == filtro_ano_compulsoria
     ]
 
 
@@ -216,7 +335,7 @@ with col2:
 
     quantidade = (
         resultado["dias_requerimento"]
-        .le(1)
+        .le(365)
         .sum()
     )
 
@@ -230,7 +349,7 @@ with col3:
 
     quantidade = (
         resultado["dias_requerimento"]
-        .le(5)
+        .le(365 * 5)
         .sum()
     )
 
@@ -244,7 +363,7 @@ with col4:
 
     quantidade = (
         resultado["dias_compulsoria"]
-        .le(5)
+        .le(365 * 5)
         .sum()
     )
 
@@ -255,12 +374,17 @@ with col4:
 
 
 # ============================================================
-# TABELA
+# SEPARADOR
 # ============================================================
 
 st.divider()
 
-st.subheader("Dados")
+
+# ============================================================
+# TABELA
+# ============================================================
+
+st.subheader("📋 Registros")
 
 
 colunas_exibicao = [
@@ -270,13 +394,59 @@ colunas_exibicao = [
     "nome",
     "dias_requerimento",
     "dias_compulsoria",
+    "anos_requerimento",
+    "anos_compulsoria",
     "ano_requerimento",
     "ano_compulsoria"
 ]
 
 
+colunas_exibicao = [
+    coluna
+    for coluna in colunas_exibicao
+    if coluna in resultado.columns
+]
+
+
+tabela = resultado[colunas_exibicao].copy()
+
+
+# ------------------------------------------------------------
+# ARREDONDAMENTO DOS ANOS
+# ------------------------------------------------------------
+
+if "anos_requerimento" in tabela.columns:
+
+    tabela["anos_requerimento"] = (
+        tabela["anos_requerimento"]
+        .round(2)
+    )
+
+
+if "anos_compulsoria" in tabela.columns:
+
+    tabela["anos_compulsoria"] = (
+        tabela["anos_compulsoria"]
+        .round(2)
+    )
+
+
+# ============================================================
+# EXIBIÇÃO
+# ============================================================
+
 st.dataframe(
-    resultado[colunas_exibicao],
+    tabela,
     use_container_width=True,
     hide_index=True
 )
+
+
+# ============================================================
+# INFORMAÇÕES
+# ============================================================
+
+st.caption(
+    f"Total de registros exibidos: {len(resultado)}"
+)
+```
