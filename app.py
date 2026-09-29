@@ -1,4 +1,3 @@
-%%writefile app.py
 import streamlit as st
 import pandas as pd
 import gspread
@@ -6,7 +5,7 @@ from google.oauth2.service_account import Credentials
 
 
 # ============================================================
-# CONFIGURAÇÃO
+# CONFIGURAÇÃO DA PÁGINA
 # ============================================================
 
 st.set_page_config(
@@ -17,7 +16,7 @@ st.set_page_config(
 
 
 # ============================================================
-# CARREGAR DADOS DO GOOGLE SHEETS
+# CONEXÃO COM GOOGLE SHEETS
 # ============================================================
 
 @st.cache_data(ttl=300)
@@ -45,7 +44,7 @@ def carregar_dados():
 
     df = pd.DataFrame(dados)
 
-    # Normalização dos nomes das colunas
+    # Normalizar nomes das colunas
     df.columns = (
         df.columns
         .astype(str)
@@ -53,7 +52,7 @@ def carregar_dados():
         .str.strip()
     )
 
-    # Nomes internos
+    # Renomear colunas
     mapa_colunas = {
         "Nº": "numero",
         "Matrícula": "matricula",
@@ -69,7 +68,7 @@ def carregar_dados():
 
     df = df.rename(columns=mapa_colunas)
 
-    # Conversão dos campos numéricos
+    # Converter campos numéricos
     colunas_numericas = [
         "numero",
         "anos_requerimento",
@@ -88,7 +87,7 @@ def carregar_dados():
 
 
 # ============================================================
-# CARREGAMENTO
+# CARREGAR DADOS
 # ============================================================
 
 try:
@@ -97,8 +96,10 @@ try:
 
 except Exception as e:
 
-    st.error("Não foi possível carregar os dados.")
+    st.error("Não foi possível carregar os dados da planilha.")
+
     st.exception(e)
+
     st.stop()
 
 
@@ -109,7 +110,7 @@ except Exception as e:
 st.title("📊 Dashboard de Efetivo")
 
 st.caption(
-    "Dados atualizados a partir da planilha Google Sheets."
+    "Dados atualizados diretamente da planilha Google Sheets."
 )
 
 
@@ -119,6 +120,8 @@ st.caption(
 
 st.sidebar.header("Filtros")
 
+
+# Posto / Graduação
 
 postos = sorted(
     df["posto_graduacao"]
@@ -133,6 +136,8 @@ filtro_posto = st.sidebar.selectbox(
 )
 
 
+# Ano de Requerimento
+
 anos_requerimento = sorted(
     df["ano_requerimento"]
     .dropna()
@@ -145,6 +150,8 @@ filtro_ano_requerimento = st.sidebar.selectbox(
     ["Todos"] + anos_requerimento
 )
 
+
+# Ano de Compulsória
 
 anos_compulsoria = sorted(
     df["ano_compulsoria"]
@@ -160,25 +167,28 @@ filtro_ano_compulsoria = st.sidebar.selectbox(
 
 
 # ============================================================
-# APLICAÇÃO DOS FILTROS
+# APLICAR FILTROS
 # ============================================================
 
 resultado = df.copy()
 
 
 if filtro_posto != "Todos":
+
     resultado = resultado[
         resultado["posto_graduacao"] == filtro_posto
     ]
 
 
 if filtro_ano_requerimento != "Todos":
+
     resultado = resultado[
         resultado["ano_requerimento"] == filtro_ano_requerimento
     ]
 
 
 if filtro_ano_compulsoria != "Todos":
+
     resultado = resultado[
         resultado["ano_compulsoria"] == filtro_ano_compulsoria
     ]
@@ -192,6 +202,7 @@ col1, col2, col3, col4 = st.columns(4)
 
 
 with col1:
+
     st.metric(
         "Total de registros",
         len(resultado)
@@ -199,6 +210,7 @@ with col1:
 
 
 with col2:
+
     quantidade = (
         resultado["anos_requerimento"]
         .le(1)
@@ -212,6 +224,7 @@ with col2:
 
 
 with col3:
+
     quantidade = (
         resultado["anos_requerimento"]
         .le(5)
@@ -225,6 +238,7 @@ with col3:
 
 
 with col4:
+
     quantidade = (
         resultado["anos_compulsoria"]
         .le(5)
