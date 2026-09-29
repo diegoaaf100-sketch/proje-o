@@ -70,8 +70,8 @@ def carregar_dados():
         # Converter campos numéricos
     colunas_numericas = [
         "numero",
-        "anos_requerimento",
-        "anos_compulsoria",
+        "dias_requerimento",
+        "dias_compulsoria",
         "ano_requerimento",
         "ano_compulsoria"
     ]
@@ -215,7 +215,7 @@ with col1:
 with col2:
 
     quantidade = (
-        resultado["anos_requerimento"]
+        resultado["dias_requerimento"]
         .le(1)
         .sum()
     )
@@ -229,7 +229,7 @@ with col2:
 with col3:
 
     quantidade = (
-        resultado["anos_requerimento"]
+        resultado["dias_requerimento"]
         .le(5)
         .sum()
     )
@@ -243,7 +243,7 @@ with col3:
 with col4:
 
     quantidade = (
-        resultado["anos_compulsoria"]
+        resultado["dias_compulsoria"]
         .le(5)
         .sum()
     )
@@ -268,8 +268,8 @@ colunas_exibicao = [
     "matricula",
     "posto_graduacao",
     "nome",
-    "anos_requerimento",
-    "anos_compulsoria",
+    "dias_requerimento",
+    "dias_compulsoria",
     "ano_requerimento",
     "ano_compulsoria"
 ]
