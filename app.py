@@ -449,4 +449,4 @@ st.dataframe(
 st.caption(
     f"Total de registros exibidos: {len(resultado)}"
 )
-```
+
