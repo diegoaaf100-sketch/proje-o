@@ -68,7 +68,7 @@ def carregar_dados():
 
     df = df.rename(columns=mapa_colunas)
 
-    # Converter campos numéricos
+        # Converter campos numéricos
     colunas_numericas = [
         "numero",
         "anos_requerimento",
@@ -78,16 +78,16 @@ def carregar_dados():
     ]
 
     for coluna in colunas_numericas:
-    if coluna in df.columns:
-        df[coluna] = pd.to_numeric(
-            df[coluna],
-            errors="coerce"
-        )
+        if coluna in df.columns:
+            df[coluna] = pd.to_numeric(
+                df[coluna],
+                errors="coerce"
+            )
 
-st.write("Colunas recebidas da planilha:")
-st.write(list(df.columns))
+    st.write("Colunas recebidas da planilha:")
+    st.write(list(df.columns))
 
-return df
+    return df
 
 
 # ============================================================
