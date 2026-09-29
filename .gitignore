@@ -1,21 +1,12 @@
-# Credenciais
 *.json
 .env
 .env.*
-
-# Python
 __pycache__/
 *.py[cod]
-
-# Ambiente virtual
 .venv/
 venv/
 env/
-
-# Dados locais
 *.csv
 *.xlsx
 *.xls
-
-# Configurações locais
 .streamlit/secrets.toml
