@@ -2,10 +2,6 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-st.write("VERSÃO DO DASHBOARD: be4f25c")
-!git add app.py
-!git commit -m "Identificar versao do dashboard"
-!git push origin main
 
 # ============================================================
 # CONFIGURAÇÃO DA PÁGINA
