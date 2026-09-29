@@ -78,12 +78,16 @@ def carregar_dados():
     ]
 
     for coluna in colunas_numericas:
+    if coluna in df.columns:
         df[coluna] = pd.to_numeric(
             df[coluna],
             errors="coerce"
         )
 
-    return df
+st.write("Colunas recebidas da planilha:")
+st.write(list(df.columns))
+
+return df
 
 
 # ============================================================
