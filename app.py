@@ -312,6 +312,225 @@ use_container_width=True,
 hide_index=True
 )
 
+============================================================
+PROJEÇÕES DE EFETIVO - 2026 A 2035
+============================================================
+
+st.divider()
+
+st.subheader("📈 Projeções de Efetivo — 2026 a 2035")
+
+st.write(
+"O efetivo inicial de 2026 corresponde ao total atual de registros "
+"da planilha. As projeções são calculadas de forma acumulativa."
+)
+
+------------------------------------------------------------
+CONFIGURAÇÃO DAS PROJEÇÕES
+------------------------------------------------------------
+
+ANO_INICIAL = 2026
+ANO_FINAL = 2035
+
+NOVOS_P1 = 300
+NOVOS_P2 = 260
+NOVOS_P3 = 300
+NOVOS_P4 = 260
+
+------------------------------------------------------------
+EFETIVO INICIAL
+------------------------------------------------------------
+
+efetivo_inicial = len(df)
+
+------------------------------------------------------------
+CONTAGEM DAS SAÍDAS POR ANO
+------------------------------------------------------------
+
+anos = list(range(ANO_INICIAL, ANO_FINAL + 1))
+
+saidas_requerimento = {}
+saidas_compulsoria = {}
+
+for ano in anos:
+
+saidas_requerimento[ano] = int(
+    df["ano_requerimento"]
+    .eq(ano)
+    .sum()
+)
+
+saidas_compulsoria[ano] = int(
+    df["ano_compulsoria"]
+    .eq(ano)
+    .sum()
+)
+------------------------------------------------------------
+CÁLCULO DAS QUATRO PROJEÇÕES
+------------------------------------------------------------
+
+projecoes = []
+
+efetivo_p1 = efetivo_inicial
+efetivo_p2 = efetivo_inicial
+efetivo_p3 = efetivo_inicial
+efetivo_p4 = efetivo_inicial
+
+for ano in anos:
+
+saidas_req = saidas_requerimento[ano]
+saidas_comp = saidas_compulsoria[ano]
+
+
+# --------------------------------------------------------
+# PROJEÇÃO 1
+# Requerimento + 300 novos
+# --------------------------------------------------------
+
+efetivo_p1 = (
+    efetivo_p1
+    - saidas_req
+    + NOVOS_P1
+)
+
+
+# --------------------------------------------------------
+# PROJEÇÃO 2
+# Requerimento + 260 novos
+# --------------------------------------------------------
+
+efetivo_p2 = (
+    efetivo_p2
+    - saidas_req
+    + NOVOS_P2
+)
+
+
+# --------------------------------------------------------
+# PROJEÇÃO 3
+# Compulsória + 300 novos
+# --------------------------------------------------------
+
+efetivo_p3 = (
+    efetivo_p3
+    - saidas_comp
+    + NOVOS_P3
+)
+
+
+# --------------------------------------------------------
+# PROJEÇÃO 4
+# Compulsória + 260 novos
+# --------------------------------------------------------
+
+efetivo_p4 = (
+    efetivo_p4
+    - saidas_comp
+    + NOVOS_P4
+)
+
+
+projecoes.append(
+    {
+        "Ano": ano,
+        "Efetivo Inicial": (
+            efetivo_inicial
+            if ano == ANO_INICIAL
+            else None
+        ),
+        "Saídas Requerimento": saidas_req,
+        "Saídas Compulsória": saidas_comp,
+        "P1 — Req. +300": efetivo_p1,
+        "P2 — Req. +260": efetivo_p2,
+        "P3 — Comp. +300": efetivo_p3,
+        "P4 — Comp. +260": efetivo_p4
+    }
+)
+------------------------------------------------------------
+CORRIGIR EFETIVO INICIAL DA TABELA
+------------------------------------------------------------
+
+for i in range(1, len(projecoes)):
+
+projecoes[i]["Efetivo Inicial"] = None
+
+projecoes_df = pd.DataFrame(projecoes)
+
+------------------------------------------------------------
+FORMATAÇÃO
+------------------------------------------------------------
+
+colunas_projecao = [
+"Ano",
+"Saídas Requerimento",
+"Saídas Compulsória",
+"P1 — Req. +300",
+"P2 — Req. +260",
+"P3 — Comp. +300",
+"P4 — Comp. +260"
+]
+
+st.dataframe(
+projecoes_df[colunas_projecao],
+use_container_width=True,
+hide_index=True
+)
+
+------------------------------------------------------------
+GRÁFICO
+------------------------------------------------------------
+
+st.subheader("📊 Evolução das Projeções")
+
+grafico = projecoes_df.set_index("Ano")[
+[
+"P1 — Req. +300",
+"P2 — Req. +260",
+"P3 — Comp. +300",
+"P4 — Comp. +260"
+]
+]
+
+st.line_chart(grafico)
+
+------------------------------------------------------------
+RESUMO FINAL — 2035
+------------------------------------------------------------
+
+st.subheader("📌 Efetivo projetado em 2035")
+
+ultima_linha = projecoes_df.iloc[-1]
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+
+st.metric(
+    "P1 — Req. +300",
+    int(ultima_linha["P1 — Req. +300"])
+)
+
+with col2:
+
+st.metric(
+    "P2 — Req. +260",
+    int(ultima_linha["P2 — Req. +260"])
+)
+
+with col3:
+
+st.metric(
+    "P3 — Comp. +300",
+    int(ultima_linha["P3 — Comp. +300"])
+)
+
+with col4:
+
+st.metric(
+    "P4 — Comp. +260",
+    int(ultima_linha["P4 — Comp. +260"])
+)
+
 st.caption(
 f"Total de registros exibidos: {len(resultado)}"
 )
