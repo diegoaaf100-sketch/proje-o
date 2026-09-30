@@ -9,7 +9,7 @@ page_icon="📊",
 layout="wide"
 )
 
-st.title("📊 Dashboard de Reserva")
+st.title("Dashboard de Reserva")
 
 @st.cache_data(ttl=300)
 def carregar_dados():
@@ -34,30 +34,13 @@ worksheet = spreadsheet.worksheet("Página4")
 dados = worksheet.get_all_records()
 
 return pd.DataFrame(dados)
-spreadsheet = client.open_by_key(
-    st.secrets["spreadsheet_id"]
-)
-
-worksheet = spreadsheet.worksheet("Página4")
-
-dados = worksheet.get_all_records()
-
-return pd.DataFrame(dados)
-============================================================
-CARREGAMENTO DOS DADOS
-============================================================
 
 try:
 df = carregar_dados()
-
 except Exception as e:
-st.error("Não foi possível carregar os dados da planilha.")
+st.error("Erro ao carregar a planilha.")
 st.exception(e)
 st.stop()
-
-============================================================
-PADRONIZAÇÃO DAS COLUNAS
-============================================================
 
 df.columns = (
 df.columns
@@ -66,7 +49,7 @@ df.columns
 .str.strip()
 )
 
-mapa_colunas = {
+mapa = {
 "Nº": "numero",
 "Matrícula": "matricula",
 "Posto / Graduação": "posto_graduacao",
@@ -79,16 +62,10 @@ mapa_colunas = {
 "Ano de Compulsória": "ano_compulsoria"
 }
 
-df = df.rename(columns=mapa_colunas)
+df = df.rename(columns=mapa)
 
-============================================================
-COMPATIBILIDADE COM VERSÕES ANTIGAS DA PLANILHA
-============================================================
-
-if (
-"dias_requerimento" not in df.columns
-and "anos_requerimento" in df.columns
-):
+if "dias_requerimento" not in df.columns:
+if "anos_requerimento" in df.columns:
 df["dias_requerimento"] = (
 pd.to_numeric(
 df["anos_requerimento"],
@@ -96,10 +73,8 @@ errors="coerce"
 ) * 365.25
 )
 
-if (
-"dias_compulsoria" not in df.columns
-and "anos_compulsoria" in df.columns
-):
+if "dias_compulsoria" not in df.columns:
+if "anos_compulsoria" in df.columns:
 df["dias_compulsoria"] = (
 pd.to_numeric(
 df["anos_compulsoria"],
@@ -107,47 +82,33 @@ errors="coerce"
 ) * 365.25
 )
 
-============================================================
-VERIFICAÇÃO DAS COLUNAS
-============================================================
-
-colunas_obrigatorias = [
+obrigatorias = [
 "dias_requerimento",
 "dias_compulsoria",
 "ano_requerimento",
 "ano_compulsoria"
 ]
 
-colunas_faltantes = [
+faltantes = [
 coluna
-for coluna in colunas_obrigatorias
+for coluna in obrigatorias
 if coluna not in df.columns
 ]
 
-if colunas_faltantes:
-st.error(
-"A planilha não possui todas as colunas necessárias."
-)
+if faltantes:
+st.error("Existem colunas obrigatórias ausentes.")
 
-st.write("Colunas encontradas na planilha:")
+st.write("Colunas encontradas:")
 
-st.code(
-    "\n".join(
-        df.columns.astype(str).tolist()
-    )
-)
+st.write(df.columns.tolist())
 
-st.error(
-    "Colunas ausentes: "
-    + ", ".join(colunas_faltantes)
-)
+st.write("Colunas ausentes:")
+
+st.write(faltantes)
 
 st.stop()
-============================================================
-CONVERSÃO NUMÉRICA
-============================================================
 
-colunas_numericas = [
+numericas = [
 "numero",
 "dias_requerimento",
 "dias_compulsoria",
@@ -155,17 +116,12 @@ colunas_numericas = [
 "ano_compulsoria"
 ]
 
-for coluna in colunas_numericas:
-
+for coluna in numericas:
 if coluna in df.columns:
-
-    df[coluna] = pd.to_numeric(
-        df[coluna],
-        errors="coerce"
-    )
-============================================================
-CÁLCULO DOS ANOS
-============================================================
+df[coluna] = pd.to_numeric(
+df[coluna],
+errors="coerce"
+)
 
 df["anos_requerimento"] = (
 df["dias_requerimento"] / 365.25
@@ -175,11 +131,7 @@ df["anos_compulsoria"] = (
 df["dias_compulsoria"] / 365.25
 )
 
-============================================================
-FILTROS
-============================================================
-
-st.sidebar.header("🔎 Filtros")
+st.sidebar.header("Filtros")
 
 if "posto_graduacao" in df.columns:
 
@@ -200,33 +152,29 @@ else:
 
 filtro_posto = "Todos"
 
-anos_requerimento = sorted(
+anos_req = sorted(
 df["ano_requerimento"]
 .dropna()
 .unique()
 .tolist()
 )
 
-filtro_ano_requerimento = st.sidebar.selectbox(
+filtro_req = st.sidebar.selectbox(
 "Ano de Requerimento",
-["Todos"] + anos_requerimento
+["Todos"] + anos_req
 )
 
-anos_compulsoria = sorted(
+anos_comp = sorted(
 df["ano_compulsoria"]
 .dropna()
 .unique()
 .tolist()
 )
 
-filtro_ano_compulsoria = st.sidebar.selectbox(
+filtro_comp = st.sidebar.selectbox(
 "Ano de Compulsória",
-["Todos"] + anos_compulsoria
+["Todos"] + anos_comp
 )
-
-============================================================
-APLICAÇÃO DOS FILTROS
-============================================================
 
 resultado = df.copy()
 
@@ -237,79 +185,66 @@ resultado = resultado[
     == str(filtro_posto)
 ]
 
-if filtro_ano_requerimento != "Todos":
+if filtro_req != "Todos":
 
 resultado = resultado[
     resultado["ano_requerimento"]
-    == filtro_ano_requerimento
+    == filtro_req
 ]
 
-if filtro_ano_compulsoria != "Todos":
+if filtro_comp != "Todos":
 
 resultado = resultado[
     resultado["ano_compulsoria"]
-    == filtro_ano_compulsoria
+    == filtro_comp
 ]
-============================================================
-INDICADORES
-============================================================
 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-
 st.metric(
-    "Total de registros",
-    len(resultado)
+"Total de registros",
+len(resultado)
 )
 
 with col2:
 
-quantidade = (
-    resultado["dias_requerimento"]
-    .le(365)
-    .sum()
-)
+qtd = resultado[
+    "dias_requerimento"
+].le(365).sum()
 
 st.metric(
-    "Requerimento ≤ 1 ano",
-    int(quantidade)
+    "Requerimento ate 1 ano",
+    int(qtd)
 )
 
 with col3:
 
-quantidade = (
-    resultado["dias_requerimento"]
-    .le(365 * 5)
-    .sum()
-)
+qtd = resultado[
+    "dias_requerimento"
+].le(365 * 5).sum()
 
 st.metric(
-    "Requerimento ≤ 5 anos",
-    int(quantidade)
+    "Requerimento ate 5 anos",
+    int(qtd)
 )
 
 with col4:
 
-quantidade = (
-    resultado["dias_compulsoria"]
-    .le(365 * 5)
-    .sum()
-)
+qtd = resultado[
+    "dias_compulsoria"
+].le(365 * 5).sum()
 
 st.metric(
-    "Compulsória ≤ 5 anos",
-    int(quantidade)
+    "Compulsoria ate 5 anos",
+    int(qtd)
 )
-============================================================
-TABELA DE REGISTROS
-============================================================
 
 st.divider()
 
-st.subheader("📋 Registros")
+st.subheader("Registros")
 
-colunas_exibicao = [
+colunas = [
 "numero",
 "matricula",
 "posto_graduacao",
@@ -322,24 +257,22 @@ colunas_exibicao = [
 "ano_compulsoria"
 ]
 
-colunas_exibicao = [
+colunas = [
 coluna
-for coluna in colunas_exibicao
+for coluna in colunas
 if coluna in resultado.columns
 ]
 
-tabela = resultado[colunas_exibicao].copy()
+tabela = resultado[colunas].copy()
 
 if "anos_requerimento" in tabela.columns:
-
 tabela["anos_requerimento"] = (
-    tabela["anos_requerimento"].round(2)
+tabela["anos_requerimento"].round(2)
 )
 
 if "anos_compulsoria" in tabela.columns:
-
 tabela["anos_compulsoria"] = (
-    tabela["anos_compulsoria"].round(2)
+tabela["anos_compulsoria"].round(2)
 )
 
 st.dataframe(
@@ -348,114 +281,80 @@ use_container_width=True,
 hide_index=True
 )
 
-#============================================================
-#PROJEÇÕES DE EFETIVO — 2026 A 2035
-#============================================================
-
 st.divider()
 
-st.subheader(
-"📈 Projeções de Efetivo — 2026 a 2035"
-)
+st.subheader("Projecoes de Efetivo 2026 a 2035")
 
 st.write(
-"O efetivo atual da planilha é utilizado como "
-"efetivo inicial de 2026. As projeções são "
-"calculadas de forma acumulativa."
+"O total atual da planilha e utilizado como "
+"efetivo inicial da projecao."
 )
 
-ANO_INICIAL = 2026
-ANO_FINAL = 2035
+ano_inicial = 2026
+ano_final = 2035
 
-NOVOS_P1 = 300
-NOVOS_P2 = 260
-NOVOS_P3 = 300
-NOVOS_P4 = 260
+novos_p1 = 300
+novos_p2 = 260
+novos_p3 = 300
+novos_p4 = 260
 
 efetivo_inicial = len(df)
 
 anos = list(
 range(
-ANO_INICIAL,
-ANO_FINAL + 1
+ano_inicial,
+ano_final + 1
 )
 )
 
-============================================================
-SAÍDAS POR ANO
-============================================================
-
-saidas_requerimento = {}
-saidas_compulsoria = {}
+saidas_req = {}
+saidas_comp = {}
 
 for ano in anos:
 
-saidas_requerimento[ano] = int(
+saidas_req[ano] = int(
     df["ano_requerimento"]
     .eq(ano)
     .sum()
 )
 
-saidas_compulsoria[ano] = int(
+saidas_comp[ano] = int(
     df["ano_compulsoria"]
     .eq(ano)
     .sum()
 )
-============================================================
-CÁLCULO DAS PROJEÇÕES
-============================================================
+
+p1 = efetivo_inicial
+p2 = efetivo_inicial
+p3 = efetivo_inicial
+p4 = efetivo_inicial
 
 projecoes = []
 
-efetivo_p1 = efetivo_inicial
-efetivo_p2 = efetivo_inicial
-efetivo_p3 = efetivo_inicial
-efetivo_p4 = efetivo_inicial
-
 for ano in anos:
 
-saidas_req = saidas_requerimento[ano]
-
-saidas_comp = saidas_compulsoria[ano]
-
-
-efetivo_p1 = (
-    efetivo_p1
-    - saidas_req
-    + NOVOS_P1
-)
+saida_req = saidas_req[ano]
+saida_comp = saidas_comp[ano]
 
 
-efetivo_p2 = (
-    efetivo_p2
-    - saidas_req
-    + NOVOS_P2
-)
+p1 = p1 - saida_req + novos_p1
 
+p2 = p2 - saida_req + novos_p2
 
-efetivo_p3 = (
-    efetivo_p3
-    - saidas_comp
-    + NOVOS_P3
-)
+p3 = p3 - saida_comp + novos_p3
 
-
-efetivo_p4 = (
-    efetivo_p4
-    - saidas_comp
-    + NOVOS_P4
-)
+p4 = p4 - saida_comp + novos_p4
 
 
 projecoes.append(
     {
         "Ano": ano,
-        "Saídas Requerimento": saidas_req,
-        "Saídas Compulsória": saidas_comp,
-        "P1 — Req. +300": efetivo_p1,
-        "P2 — Req. +260": efetivo_p2,
-        "P3 — Comp. +300": efetivo_p3,
-        "P4 — Comp. +260": efetivo_p4
+        "Saidas Requerimento": saida_req,
+        "Saidas Compulsoria": saida_comp,
+        "P1 - Req +300": p1,
+        "P2 - Req +260": p2,
+        "P3 - Comp +300": p3,
+        "P4 - Comp +260": p4
     }
 )
 
@@ -463,108 +362,71 @@ projecoes_df = pd.DataFrame(
 projecoes
 )
 
-============================================================
-TABELA DAS PROJEÇÕES
-============================================================
-
-st.subheader(
-"📋 Tabela das Projeções"
-)
-
-colunas_projecao = [
-"Ano",
-"Saídas Requerimento",
-"Saídas Compulsória",
-"P1 — Req. +300",
-"P2 — Req. +260",
-"P3 — Comp. +300",
-"P4 — Comp. +260"
-]
+st.subheader("Tabela das Projecoes")
 
 st.dataframe(
-projecoes_df[colunas_projecao],
+projecoes_df,
 use_container_width=True,
 hide_index=True
 )
 
-============================================================
-GRÁFICO
-============================================================
-
-st.subheader(
-"📊 Evolução das Projeções"
-)
+st.subheader("Evolucao das Projecoes")
 
 grafico = projecoes_df.set_index(
 "Ano"
 )[
 [
-"P1 — Req. +300",
-"P2 — Req. +260",
-"P3 — Comp. +300",
-"P4 — Comp. +260"
+"P1 - Req +300",
+"P2 - Req +260",
+"P3 - Comp +300",
+"P4 - Comp +260"
 ]
 ]
 
 st.line_chart(grafico)
 
-#============================================================
-#RESUMO FINAL — 2035
-#============================================================
+st.subheader("Resumo Final - 2035")
 
-st.subheader(
-"📌 RESUMO FINAL — 2035"
-)
-
-ultima_linha = projecoes_df.iloc[-1]
+ultima = projecoes_df.iloc[-1]
 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
 
 st.metric(
-    "P1 — Requerimento +300",
-    int(
-        ultima_linha["P1 — Req. +300"]
-    )
+    "P1 - Req +300",
+    int(ultima["P1 - Req +300"])
 )
 
 with col2:
 
 st.metric(
-    "P2 — Requerimento +260",
-    int(
-        ultima_linha["P2 — Req. +260"]
-    )
+    "P2 - Req +260",
+    int(ultima["P2 - Req +260"])
 )
 
 with col3:
 
 st.metric(
-    "P3 — Compulsória +300",
-    int(
-        ultima_linha["P3 — Comp. +300"]
-    )
+    "P3 - Comp +300",
+    int(ultima["P3 - Comp +300"])
 )
 
 with col4:
 
 st.metric(
-    "P4 — Compulsória +260",
-    int(
-        ultima_linha["P4 — Comp. +260"]
-    )
+    "P4 - Comp +260",
+    int(ultima["P4 - Comp +260"])
 )
-#============================================================
-#RODAPÉ
-#============================================================
 
 st.divider()
 
 st.caption(
-f"Total de registros exibidos nos filtros: {len(resultado)}"
+"Efetivo inicial das projecoes: "
++ str(efetivo_inicial)
 )
 
 st.caption(
-f"Efetivo inicial utilizado nas projeções: {efetivo_inicial}"
+"Total de registros exibidos: "
++ str(len(resultado))
 )
