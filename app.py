@@ -44,9 +44,9 @@ def carregar_dados():
 
     df = pd.DataFrame(dados)
 
-    # --------------------------------------------------------
+    # ========================================================
     # LIMPEZA DOS NOMES DAS COLUNAS
-    # --------------------------------------------------------
+    # ========================================================
 
     df.columns = (
         df.columns
@@ -55,9 +55,9 @@ def carregar_dados():
         .str.strip()
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # MAPA DAS COLUNAS DA PLANILHA
-    # --------------------------------------------------------
+    # ========================================================
 
     mapa_colunas = {
 
@@ -91,9 +91,17 @@ def carregar_dados():
         columns=mapa_colunas
     )
 
-    # --------------------------------------------------------
+    # ========================================================
+    # CONVERTE NONE PARA VALOR NULO
+    # ========================================================
+
+    df = df.replace(
+        {None: pd.NA}
+    )
+
+    # ========================================================
     # CONVERSÃO DAS COLUNAS NUMÉRICAS
-    # --------------------------------------------------------
+    # ========================================================
 
     colunas_numericas = [
 
@@ -122,9 +130,9 @@ def carregar_dados():
                 errors="coerce"
             )
 
-    # --------------------------------------------------------
+    # ========================================================
     # CRIA ANOS A PARTIR DOS DIAS, SE NECESSÁRIO
-    # --------------------------------------------------------
+    # ========================================================
 
     if (
         "anos_requerimento" not in df.columns
@@ -145,59 +153,48 @@ def carregar_dados():
         )
 
     # ========================================================
-    # CLASSIFICAÇÃO: OFICIAIS / PRAÇAS
+    # CLASSIFICAÇÃO DE OFICIAIS E PRAÇAS
     # ========================================================
 
     postos_oficiais = [
 
         "Cel",
-
         "Tem Cel",
-
         "Maj QOC",
-
         "Maj QOA",
-
         "Cap QOA",
-
         "Cap QOC",
-
         "1° Ten QOC",
-
         "1° Ten QOA",
-
         "2° Ten QOC",
-
         "2° Ten QOA",
-
         "Aspirante"
 
     ]
 
-    # --------------------------------------------------------
+    # ========================================================
     # NORMALIZAÇÃO DO POSTO
-    #
-    # Permite reconhecer pequenas diferenças como:
-    # 1° Ten QOC
-    # 1º Ten QOC
-    # 1º  Ten  QOC
-    # etc.
-    # --------------------------------------------------------
+    # ========================================================
 
     def normalizar_posto(valor):
 
         texto = str(valor).strip()
 
+        # Aceita º e °
         texto = texto.replace(
             "º",
             "°"
         )
 
+        # Remove espaços duplicados
         texto = " ".join(
             texto.split()
         )
 
-        return texto.lower()
+        # Ignora diferenças de maiúsculas/minúsculas
+        texto = texto.lower()
+
+        return texto
 
     postos_oficiais_normalizados = [
 
@@ -207,7 +204,9 @@ def carregar_dados():
 
     ]
 
-    df["grupo"] = df["posto_graduacao"].apply(
+    df["grupo"] = df[
+        "posto_graduacao"
+    ].apply(
 
         lambda x:
 
@@ -264,16 +263,14 @@ st.sidebar.header(
 )
 
 
-# ------------------------------------------------------------
+# ============================================================
 # FILTRO DE GRUPO
-# ------------------------------------------------------------
+# ============================================================
 
 grupos = [
 
     "Todos",
-
     "Oficiais",
-
     "Praças"
 
 ]
@@ -287,13 +284,15 @@ filtro_grupo = st.sidebar.selectbox(
 )
 
 
-# ------------------------------------------------------------
+# ============================================================
 # FILTRO DE POSTO
-# ------------------------------------------------------------
+# ============================================================
 
 postos = sorted(
 
-    df["posto_graduacao"]
+    df[
+        "posto_graduacao"
+    ]
 
     .dropna()
 
@@ -314,13 +313,15 @@ filtro_posto = st.sidebar.selectbox(
 )
 
 
-# ------------------------------------------------------------
+# ============================================================
 # FILTRO DE ANO DE REQUERIMENTO
-# ------------------------------------------------------------
+# ============================================================
 
 anos_requerimento = sorted(
 
-    df["ano_requerimento"]
+    df[
+        "ano_requerimento"
+    ]
 
     .dropna()
 
@@ -341,13 +342,15 @@ filtro_ano_requerimento = st.sidebar.selectbox(
 )
 
 
-# ------------------------------------------------------------
+# ============================================================
 # FILTRO DE ANO DE COMPULSÓRIA
-# ------------------------------------------------------------
+# ============================================================
 
 anos_compulsoria = sorted(
 
-    df["ano_compulsoria"]
+    df[
+        "ano_compulsoria"
+    ]
 
     .dropna()
 
@@ -391,7 +394,10 @@ resultado = df_grupo.copy()
 if filtro_posto != "Todos":
 
     resultado = resultado[
-        resultado["posto_graduacao"]
+        resultado[
+            "posto_graduacao"
+        ]
+
         == filtro_posto
     ]
 
@@ -399,7 +405,10 @@ if filtro_posto != "Todos":
 if filtro_ano_requerimento != "Todos":
 
     resultado = resultado[
-        resultado["ano_requerimento"]
+        resultado[
+            "ano_requerimento"
+        ]
+
         == filtro_ano_requerimento
     ]
 
@@ -407,7 +416,10 @@ if filtro_ano_requerimento != "Todos":
 if filtro_ano_compulsoria != "Todos":
 
     resultado = resultado[
-        resultado["ano_compulsoria"]
+        resultado[
+            "ano_compulsoria"
+        ]
+
         == filtro_ano_compulsoria
     ]
 
@@ -434,7 +446,9 @@ with col2:
 
     quantidade = (
 
-        resultado["anos_requerimento"]
+        resultado[
+            "anos_requerimento"
+        ]
 
         .le(1)
 
@@ -455,7 +469,9 @@ with col3:
 
     quantidade = (
 
-        resultado["anos_requerimento"]
+        resultado[
+            "anos_requerimento"
+        ]
 
         .le(5)
 
@@ -476,7 +492,9 @@ with col4:
 
     quantidade = (
 
-        resultado["anos_compulsoria"]
+        resultado[
+            "anos_compulsoria"
+        ]
 
         .le(5)
 
@@ -527,9 +545,23 @@ colunas_exibicao = [
 ]
 
 
+# ============================================================
+# PREPARAÇÃO DA TABELA PARA EXIBIÇÃO
+#
+# None / NaN são mostrados como células vazias.
+# Isso NÃO altera os dados da planilha.
+# ============================================================
+
+resultado_exibicao = resultado[
+    colunas_exibicao
+].copy()
+
+resultado_exibicao = resultado_exibicao.fillna("")
+
+
 st.dataframe(
 
-    resultado[colunas_exibicao],
+    resultado_exibicao,
 
     use_container_width=True,
 
@@ -606,7 +638,7 @@ ANO_FINAL = 2035
 
 
 # ============================================================
-# ENTRADAS ANUAIS DOS CENÁRIOS
+# ENTRADAS DOS CENÁRIOS
 # ============================================================
 
 # ------------------------------------------------------------
@@ -674,12 +706,7 @@ anos = list(
 # EFETIVO INICIAL
 # ============================================================
 
-# IMPORTANTE:
-#
-# O efetivo inicial de 2026 é exatamente o número de pessoas
-# pertencentes ao grupo selecionado.
-#
-# Nenhuma saída ou entrada ocorre em 2026.
+# O ano de 2026 representa exatamente o efetivo atual.
 
 efetivo_inicial = len(
     df_grupo
@@ -737,7 +764,7 @@ saidas_compulsoria = {
 
 
 # ============================================================
-# FUNÇÃO PARA CONSTRUIR OS CENÁRIOS
+# FUNÇÃO DE CONSTRUÇÃO DOS CENÁRIOS
 # ============================================================
 
 def construir_cenario(
@@ -757,12 +784,13 @@ def construir_cenario(
 
     for ano in anos:
 
-        # ----------------------------------------------------
+        # ====================================================
         # 2026
         #
+        # Nenhuma saída.
+        # Nenhuma entrada.
         # Mantém exatamente o efetivo atual.
-        # Não existem entradas ou saídas.
-        # ----------------------------------------------------
+        # ====================================================
 
         if ano == ANO_INICIAL:
 
@@ -797,9 +825,9 @@ def construir_cenario(
             continue
 
 
-        # ----------------------------------------------------
-        # DEFINIÇÃO DAS SAÍDAS
-        # ----------------------------------------------------
+        # ====================================================
+        # SAÍDAS
+        # ====================================================
 
         if tipo_saida == "requerimento":
 
@@ -814,18 +842,9 @@ def construir_cenario(
             )
 
 
-        # ----------------------------------------------------
-        # DEFINIÇÃO DAS ENTRADAS
-        #
-        # Se estiver vendo TODOS:
-        #   Oficiais + Praças
-        #
-        # Se estiver vendo OFICIAIS:
-        #   somente Oficiais
-        #
-        # Se estiver vendo PRAÇAS:
-        #   somente Praças
-        # ----------------------------------------------------
+        # ====================================================
+        # ENTRADAS
+        # ====================================================
 
         if filtro_grupo == "Oficiais":
 
@@ -856,9 +875,9 @@ def construir_cenario(
             )
 
 
-        # ----------------------------------------------------
+        # ====================================================
         # TOTAL DE ENTRADAS
-        # ----------------------------------------------------
+        # ====================================================
 
         entradas = (
 
@@ -871,9 +890,9 @@ def construir_cenario(
         )
 
 
-        # ----------------------------------------------------
-        # SALDO DO ANO
-        # ----------------------------------------------------
+        # ====================================================
+        # SALDO
+        # ====================================================
 
         saldo = (
 
@@ -886,9 +905,9 @@ def construir_cenario(
         )
 
 
-        # ----------------------------------------------------
+        # ====================================================
         # EFETIVO PROJETADO
-        # ----------------------------------------------------
+        # ====================================================
 
         efetivo_projetado = (
 
@@ -901,9 +920,9 @@ def construir_cenario(
         )
 
 
-        # ----------------------------------------------------
-        # REGISTRO DO ANO
-        # ----------------------------------------------------
+        # ====================================================
+        # REGISTRO
+        # ====================================================
 
         linhas.append({
 
@@ -934,9 +953,9 @@ def construir_cenario(
         })
 
 
-        # ----------------------------------------------------
-        # O EFETIVO DO ANO PASSA A SER O INICIAL DO PRÓXIMO
-        # ----------------------------------------------------
+        # ====================================================
+        # PRÓXIMO ANO
+        # ====================================================
 
         efetivo_atual = (
             efetivo_projetado
@@ -949,7 +968,7 @@ def construir_cenario(
 
 
 # ============================================================
-# CONSTRUÇÃO DOS QUATRO CENÁRIOS
+# CONSTRUÇÃO DOS CENÁRIOS
 # ============================================================
 
 df_cenario_01 = construir_cenario(
