@@ -337,9 +337,9 @@ st.divider()
 st.header("📊 Painel de Planejamento de Efetivo")
 
 st.caption(
-    "Projeção do efetivo entre 2026 e 2035, considerando "
-    "saídas por requerimento ou compulsória e novas entradas "
-    "conforme cada cenário."
+    "Projeção do efetivo entre 2026 e 2035. "
+    "O ano de 2026 representa o efetivo atual da planilha. "
+    "As alterações começam a partir de 2027."
 )
 
 
@@ -369,6 +369,8 @@ anos = list(
 
 # O efetivo inicial corresponde ao total de registros
 # existentes na planilha.
+#
+# Esse valor representa o efetivo de 2026.
 #
 # A projeção não sofre influência dos filtros.
 
@@ -406,12 +408,43 @@ def construir_cenario(
 
     linhas = []
 
+    # O efetivo atual da planilha será o efetivo de 2026.
     efetivo_atual = efetivo_inicial
 
     for ano in anos:
 
         # ====================================================
-        # SAÍDAS
+        # 2026 — MANTER O EFETIVO ATUAL
+        # ====================================================
+
+        if ano == ANO_INICIAL:
+
+            linhas.append({
+
+                "Ano": ano,
+
+                "Efetivo inicial":
+                    efetivo_atual,
+
+                "Saídas":
+                    0,
+
+                "Entradas":
+                    0,
+
+                "Saldo do ano":
+                    0,
+
+                "Efetivo projetado":
+                    efetivo_atual
+
+            })
+
+            continue
+
+
+        # ====================================================
+        # A PARTIR DE 2027 — APLICAR PROJEÇÃO
         # ====================================================
 
         if tipo_saida == "requerimento":
@@ -517,13 +550,16 @@ df_cenario_04 = construir_cenario(
 st.subheader("📌 Indicadores do Planejamento")
 
 
+# As saídas do planejamento são consideradas somente
+# a partir de 2027.
+
 total_saidas_requerimento = sum(
-    saidas_requerimento.values()
+    df_cenario_01["Saídas"]
 )
 
 
 total_saidas_compulsoria = sum(
-    saidas_compulsoria.values()
+    df_cenario_03["Saídas"]
 )
 
 
@@ -533,7 +569,7 @@ c1, c2, c3, c4 = st.columns(4)
 with c1:
 
     st.metric(
-        "Efetivo inicial",
+        "Efetivo inicial — 2026",
         f"{efetivo_inicial:,}".replace(",", ".")
     )
 
@@ -667,8 +703,10 @@ with tab1:
         """
         ### Cenário 01 — Requerimento +300
 
-        **Regra:** retirar os servidores que atingirem o ano
-        de requerimento e acrescentar 300 novos efetivos.
+        **2026:** mantém o efetivo atual.
+
+        **A partir de 2027:** saem os servidores que atingirem
+        o ano de requerimento e entram 300 novos efetivos por ano.
         """
     )
 
@@ -689,8 +727,10 @@ with tab2:
         """
         ### Cenário 02 — Requerimento +260
 
-        **Regra:** retirar os servidores que atingirem o ano
-        de requerimento e acrescentar 260 novos efetivos.
+        **2026:** mantém o efetivo atual.
+
+        **A partir de 2027:** saem os servidores que atingirem
+        o ano de requerimento e entram 260 novos efetivos por ano.
         """
     )
 
@@ -711,8 +751,10 @@ with tab3:
         """
         ### Cenário 03 — Compulsória +300
 
-        **Regra:** retirar os servidores que atingirem o ano
-        de compulsória e acrescentar 300 novos efetivos.
+        **2026:** mantém o efetivo atual.
+
+        **A partir de 2027:** saem os servidores que atingirem
+        o ano de compulsória e entram 300 novos efetivos por ano.
         """
     )
 
@@ -733,8 +775,10 @@ with tab4:
         """
         ### Cenário 04 — Compulsória +260
 
-        **Regra:** retirar os servidores que atingirem o ano
-        de compulsória e acrescentar 260 novos efetivos.
+        **2026:** mantém o efetivo atual.
+
+        **A partir de 2027:** saem os servidores que atingirem
+        o ano de compulsória e entram 260 novos efetivos por ano.
         """
     )
 
@@ -814,7 +858,8 @@ with r1:
     )
 
     st.caption(
-        f"Variação: {variacao_cenario_01:+,}".replace(",", ".")
+        f"Variação desde 2026: "
+        f"{variacao_cenario_01:+,}".replace(",", ".")
     )
 
 
@@ -828,7 +873,8 @@ with r2:
     )
 
     st.caption(
-        f"Variação: {variacao_cenario_02:+,}".replace(",", ".")
+        f"Variação desde 2026: "
+        f"{variacao_cenario_02:+,}".replace(",", ".")
     )
 
 
@@ -842,7 +888,8 @@ with r3:
     )
 
     st.caption(
-        f"Variação: {variacao_cenario_03:+,}".replace(",", ".")
+        f"Variação desde 2026: "
+        f"{variacao_cenario_03:+,}".replace(",", ".")
     )
 
 
@@ -856,7 +903,8 @@ with r4:
     )
 
     st.caption(
-        f"Variação: {variacao_cenario_04:+,}".replace(",", ".")
+        f"Variação desde 2026: "
+        f"{variacao_cenario_04:+,}".replace(",", ".")
     )
 
 
@@ -881,7 +929,7 @@ resumo_gerencial = pd.DataFrame({
 
     ],
 
-    "Efetivo Inicial": [
+    "Efetivo Inicial — 2026": [
 
         efetivo_inicial,
 
