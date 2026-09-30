@@ -174,7 +174,7 @@ st.html(
         margin-top:15px;
         margin-bottom:10px;
     ">
-        📊 Dashboard de Efetivo
+        📊 Projeção do Efetivo
     </h1>
     """
 )
