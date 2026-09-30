@@ -9,7 +9,7 @@ from google.oauth2.service_account import Credentials
 # ============================================================
 
 st.set_page_config(
-    page_title="Projeção do Efetivo",
+    page_title="Dashboard de Efetivo",
     page_icon="📊",
     layout="wide"
 )
@@ -144,10 +144,10 @@ except Exception as e:
 
 
 # ============================================================
-# TÍTULO
+# TÍTULO PRINCIPAL
 # ============================================================
 
-st.title("📊 Projeção do Efetivo")
+st.title("📊 Dashboard de Efetivo")
 
 st.caption(
     "Dados atualizados diretamente da planilha Google Sheets."
@@ -329,17 +329,36 @@ st.dataframe(
 
 
 # ============================================================
-# PAINEL DE PLANEJAMENTO
+# PAINEL DE PLANEJAMENTO DE EFETIVO
 # ============================================================
 
 st.divider()
 
-st.header("📊 Painel de Planejamento de Efetivo")
 
-st.caption(
-    "Projeção do efetivo entre 2026 e 2035. "
-    "O ano de 2026 representa o efetivo atual da planilha. "
-    "As alterações começam a partir de 2027."
+st.markdown(
+    """
+    <div style="
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 35px;
+    ">
+
+        <h1>
+            📊 Painel de Planejamento de Efetivo
+        </h1>
+
+        <p style="
+            font-size: 18px;
+            line-height: 1.6;
+        ">
+            Projeção do efetivo entre 2026 e 2035.<br>
+            O ano de 2026 representa o efetivo atual da planilha.<br>
+            As alterações começam a partir de 2027.
+        </p>
+
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 
@@ -355,6 +374,7 @@ NOVOS_CENARIO_02 = 260
 NOVOS_CENARIO_03 = 300
 NOVOS_CENARIO_04 = 260
 
+
 anos = list(
     range(
         ANO_INICIAL,
@@ -367,12 +387,7 @@ anos = list(
 # EFETIVO INICIAL
 # ============================================================
 
-# O efetivo inicial corresponde ao total de registros
-# existentes na planilha.
-#
-# Esse valor representa o efetivo de 2026.
-#
-# A projeção não sofre influência dos filtros.
+# O total atual da planilha representa o efetivo de 2026.
 
 efetivo_inicial = len(df)
 
@@ -408,7 +423,7 @@ def construir_cenario(
 
     linhas = []
 
-    # O efetivo atual da planilha será o efetivo de 2026.
+    # O efetivo atual da planilha é o efetivo de 2026.
     efetivo_atual = efetivo_inicial
 
     for ano in anos:
@@ -444,7 +459,7 @@ def construir_cenario(
 
 
         # ====================================================
-        # A PARTIR DE 2027 — APLICAR PROJEÇÃO
+        # A PARTIR DE 2027
         # ====================================================
 
         if tipo_saida == "requerimento":
@@ -457,7 +472,7 @@ def construir_cenario(
 
 
         # ====================================================
-        # ENTRADAS
+        # NOVAS ENTRADAS
         # ====================================================
 
         entradas = novas_entradas
@@ -478,10 +493,6 @@ def construir_cenario(
             efetivo_atual + saldo
         )
 
-
-        # ====================================================
-        # REGISTRAR ANO
-        # ====================================================
 
         linhas.append({
 
@@ -505,9 +516,8 @@ def construir_cenario(
         })
 
 
-        # ====================================================
-        # PRÓXIMO ANO
-        # ====================================================
+        # O resultado deste ano passa a ser
+        # o efetivo inicial do próximo ano.
 
         efetivo_atual = efetivo_projetado
 
@@ -550,16 +560,13 @@ df_cenario_04 = construir_cenario(
 st.subheader("📌 Indicadores do Planejamento")
 
 
-# As saídas do planejamento são consideradas somente
-# a partir de 2027.
-
-total_saidas_requerimento = sum(
-    df_cenario_01["Saídas"]
+total_saidas_requerimento = int(
+    df_cenario_01["Saídas"].sum()
 )
 
 
-total_saidas_compulsoria = sum(
-    df_cenario_03["Saídas"]
+total_saidas_compulsoria = int(
+    df_cenario_03["Saídas"].sum()
 )
 
 
@@ -599,7 +606,17 @@ with c4:
 
 
 # ============================================================
-# RESULTADOS DOS CENÁRIOS
+# ESPAÇAMENTO ENTRE INDICADORES E CENÁRIOS
+# ============================================================
+
+st.markdown(
+    "<div style='height: 45px;'></div>",
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# CENÁRIOS DE PLANEJAMENTO
 # ============================================================
 
 st.subheader("📈 Cenários de Planejamento")
@@ -839,7 +856,7 @@ st.dataframe(
 
 
 # ============================================================
-# RESUMO — 2035
+# SITUAÇÃO PROJETADA PARA 2035
 # ============================================================
 
 st.subheader("🎯 Situação Projetada para 2035")
