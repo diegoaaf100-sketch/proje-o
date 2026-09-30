@@ -147,7 +147,7 @@ except Exception as e:
 # TÍTULO
 # ============================================================
 
-st.title("📊 Dashboard de Efetivo")
+st.title("📊 Projeção do Efetivo")
 
 st.caption(
     "Dados atualizados diretamente da planilha Google Sheets."
