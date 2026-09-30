@@ -244,7 +244,7 @@ if filtro_ano_compulsoria != "Todos":
 
 
 # ============================================================
-# INDICADORES
+# INDICADORES PRINCIPAIS
 # ============================================================
 
 col1, col2, col3, col4 = st.columns(4)
@@ -395,8 +395,6 @@ anos = list(
 # EFETIVO INICIAL
 # ============================================================
 
-# O total atual da planilha representa o efetivo de 2026.
-
 efetivo_inicial = len(df)
 
 
@@ -431,10 +429,7 @@ def construir_cenario(
 
     linhas = []
 
-    # ========================================================
-    # EFETIVO INICIAL
-    # ========================================================
-
+    # 2026 é o ponto de partida.
     efetivo_atual = efetivo_inicial
 
     for ano in anos:
@@ -470,7 +465,7 @@ def construir_cenario(
 
 
         # ====================================================
-        # A PARTIR DE 2027 — CALCULAR SAÍDAS
+        # A PARTIR DE 2027 — SAÍDAS
         # ====================================================
 
         if tipo_saida == "requerimento":
@@ -483,31 +478,27 @@ def construir_cenario(
 
 
         # ====================================================
-        # CALCULAR ENTRADAS
+        # ENTRADAS
         # ====================================================
 
         entradas = novas_entradas
 
 
         # ====================================================
-        # CALCULAR SALDO
+        # SALDO
         # ====================================================
 
         saldo = entradas - saidas
 
 
         # ====================================================
-        # CALCULAR EFETIVO PROJETADO
+        # EFETIVO PROJETADO
         # ====================================================
 
         efetivo_projetado = (
             efetivo_atual + saldo
         )
 
-
-        # ====================================================
-        # ADICIONAR LINHA
-        # ====================================================
 
         linhas.append({
 
@@ -531,9 +522,8 @@ def construir_cenario(
         })
 
 
-        # ====================================================
-        # O PROJETADO DESTE ANO SERÁ O INICIAL DO PRÓXIMO
-        # ====================================================
+        # O projetado deste ano passa a ser
+        # o inicial do próximo ano.
 
         efetivo_atual = efetivo_projetado
 
@@ -622,7 +612,7 @@ with c4:
 
 
 # ============================================================
-# ESPAÇAMENTO ENTRE INDICADORES E CENÁRIOS
+# ESPAÇAMENTO
 # ============================================================
 
 st.html(
@@ -640,7 +630,7 @@ st.subheader("📈 Cenários de Planejamento")
 
 
 # ============================================================
-# RESULTADO FINAL DE CADA CENÁRIO
+# RESULTADO FINAL DOS CENÁRIOS
 # ============================================================
 
 cenario_01_final = int(
@@ -661,7 +651,7 @@ cenario_04_final = int(
 
 
 # ============================================================
-# VARIAÇÃO DE CADA CENÁRIO
+# VARIAÇÕES
 # ============================================================
 
 variacao_cenario_01 = (
@@ -725,7 +715,18 @@ with s4:
 
 
 # ============================================================
-# PLANEJAMENTO ANUAL
+# ESPAÇAMENTO ENTRE CENÁRIOS E PLANEJAMENTO ANUAL
+# ============================================================
+
+st.html(
+    """
+    <div style="height: 45px;"></div>
+    """
+)
+
+
+# ============================================================
+# PLANEJAMENTO ANUAL POR CENÁRIO
 # ============================================================
 
 st.subheader("📋 Planejamento Anual por Cenário")
@@ -862,7 +863,7 @@ df_comparacao = pd.DataFrame({
 
 
 # ============================================================
-# GRÁFICO DE BARRAS
+# GRÁFICO
 # ============================================================
 
 st.bar_chart(
