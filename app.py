@@ -18,6 +18,109 @@ st.set_page_config(
 )
 
 
+
+# ============================================================
+# LOGIN E CONTROLE DE ACESSO
+# ============================================================
+
+def autenticar_usuario():
+    """
+    Exibe a tela de login e libera a dashboard somente
+    após a validação do usuário e senha armazenados
+    nos Secrets do Streamlit.
+    """
+
+    if st.session_state.get("autenticado", False):
+        return True
+
+    st.markdown(
+        """
+        <div style="
+            max-width:420px;
+            margin:80px auto 20px auto;
+            text-align:center;
+        ">
+            <h1>🔐 Acesso restrito</h1>
+            <p>Informe seu usuário e senha para acessar a Dashboard.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    with st.form("formulario_login"):
+
+        usuario = st.text_input(
+            "Usuário",
+            placeholder="Digite seu usuário"
+        )
+
+        senha = st.text_input(
+            "Senha",
+            type="password",
+            placeholder="Digite sua senha"
+        )
+
+        entrar = st.form_submit_button(
+            "🔓 Entrar",
+            use_container_width=True
+        )
+
+        if entrar:
+
+            try:
+                usuario_correto = st.secrets["login"]["usuario"]
+                senha_correta = st.secrets["login"]["senha"]
+
+            except Exception:
+                st.error(
+                    "As credenciais de acesso ainda não foram "
+                    "configuradas nos Secrets do Streamlit."
+                )
+                st.stop()
+
+            if (
+                usuario == usuario_correto
+                and senha == senha_correta
+            ):
+
+                st.session_state["autenticado"] = True
+
+                st.rerun()
+
+            else:
+
+                st.error(
+                    "Usuário ou senha incorretos."
+                )
+
+    return False
+
+
+if not autenticar_usuario():
+    st.stop()
+
+
+# ============================================================
+# BOTÃO SAIR
+# ============================================================
+
+with st.sidebar:
+
+    st.markdown("---")
+
+    st.write("🔐 **Acesso autorizado**")
+
+    if st.button(
+        "🚪 Sair",
+        use_container_width=True
+    ):
+
+        st.session_state["autenticado"] = False
+
+        st.rerun()
+
+
+
 # ============================================================
 # IMAGENS DO CABEÇALHO
 # ============================================================
