@@ -8,74 +8,13 @@ from google.oauth2.service_account import Credentials
 
 
 # ============================================================
-# CONFIGURAÇÃO DA PÁGINA
+# CONFIGURAÇÃO
 # ============================================================
 
 st.set_page_config(
-    page_title="Dashboard de Efetivo",
+    page_title="Planejamento de Efetivo",
     page_icon="📊",
     layout="wide"
-)
-
-
-# ============================================================
-# CABEÇALHO
-# ============================================================
-
-# Espaçamento superior
-st.markdown(
-    "<div style='height:20px'></div>",
-    unsafe_allow_html=True
-)
-
-
-# Container central para os brasões
-col_esquerda, col_centro, col_direita = st.columns(
-    [1, 2, 1]
-)
-
-
-with col_centro:
-
-    col_img1, col_img2 = st.columns(2)
-
-    with col_img1:
-
-        st.image(
-            "brasao_dgp.png",
-            width=150
-        )
-
-    with col_img2:
-
-        st.image(
-            "brasao_cbmpe.png",
-            width=150
-        )
-
-
-# ============================================================
-# TÍTULO
-# ============================================================
-
-st.html(
-    """
-    <h1 style="
-        text-align:center;
-        font-size:42px;
-        margin-top:15px;
-        margin-bottom:10px;
-        font-weight:700;
-    ">
-        Dashboard de Efetivo
-    </h1>
-    """
-)
-
-
-st.markdown(
-    "<div style='height:25px'></div>",
-    unsafe_allow_html=True
 )
 
 
@@ -109,104 +48,240 @@ def normalizar_coluna(texto):
 
 
 # ============================================================
-# FUNÇÃO PARA CONVERTER NÚMEROS
+# CARREGAR DADOS DO GOOGLE SHEETS
 # ============================================================
 
-def converter_numero(valor):
+@st.cache_data(ttl=300)
+def carregar_dados():
 
-    if pd.isna(valor):
-        return pd.NA
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/drive.readonly"
+    ]
 
-    valor = str(valor).strip()
-
-    if valor == "":
-        return pd.NA
-
-    valor = valor.replace(
-        " ",
-        ""
+    credentials = Credentials.from_service_account_info(
+        st.secrets["google_service_account"],
+        scopes=scopes
     )
 
-    # Exemplo:
-    # 1.234,56
-    if "." in valor and "," in valor:
+    client = gspread.authorize(credentials)
 
-        valor = valor.replace(
-            ".",
-            ""
-        )
-
-        valor = valor.replace(
-            ",",
-            "."
-        )
-
-    # Exemplo:
-    # 1234,56
-    elif "," in valor:
-
-        valor = valor.replace(
-            ",",
-            "."
-        )
-
-    try:
-
-        return float(valor)
-
-    except Exception:
-
-        return pd.NA
-
-
-# ============================================================
-# LOCALIZAR COLUNA
-# ============================================================
-
-def encontrar_coluna(
-    mapa,
-    possibilidades
-):
-
-    for possibilidade in possibilidades:
-
-        chave = normalizar_coluna(
-            possibilidade
-        )
-
-        if chave in mapa:
-
-            return mapa[chave]
-
-    return None
-
-
-# ============================================================
-# CLASSIFICAÇÃO DE GRUPO
-# ============================================================
-
-def classificar_grupo(posto):
-
-    texto = str(
-        posto
-    ).strip()
-
-    # Padroniza º para °
-    texto = texto.replace(
-        "º",
-        "°"
+    spreadsheet = client.open_by_key(
+        st.secrets["spreadsheet_id"]
     )
 
-    # Remove espaços duplicados
-    texto = re.sub(
-        r"\s+",
-        " ",
-        texto
+    worksheet = spreadsheet.worksheet(
+        "Página4"
     )
 
-    texto = texto.lower()
+    dados = worksheet.get_all_records()
 
-    oficiais = {
+    df = pd.DataFrame(dados)
+
+    # ========================================================
+    # VERIFICA SE A PLANILHA POSSUI DADOS
+    # ========================================================
+
+    if df.empty:
+
+        raise ValueError(
+            "A aba 'Página4' não possui registros."
+        )
+
+    # ========================================================
+    # IDENTIFICAÇÃO DAS COLUNAS
+    # ========================================================
+
+    colunas_originais = df.columns.tolist()
+
+    mapa_normalizado = {
+        normalizar_coluna(coluna): coluna
+        for coluna in colunas_originais
+    }
+
+    def encontrar_coluna(nome):
+
+        chave = normalizar_coluna(nome)
+
+        return mapa_normalizado.get(chave)
+
+    # ========================================================
+    # LOCALIZA AS COLUNAS
+    # ========================================================
+
+    coluna_numero = encontrar_coluna("Nº")
+
+    coluna_matricula = encontrar_coluna(
+        "Matrícula"
+    )
+
+    coluna_posto = encontrar_coluna(
+        "Posto / Graduação"
+    )
+
+    coluna_nome = encontrar_coluna(
+        "Nome"
+    )
+
+    coluna_reserva_req = encontrar_coluna(
+        "Reserva Requerimento"
+    )
+
+    coluna_reserva_comp = encontrar_coluna(
+        "Reserva Compulsória"
+    )
+
+    coluna_dias_req = encontrar_coluna(
+        "Dias para Requerimento"
+    )
+
+    coluna_dias_comp = encontrar_coluna(
+        "Dias para Compulsória"
+    )
+
+    coluna_ano_req = encontrar_coluna(
+        "Ano de Requerimento"
+    )
+
+    coluna_ano_comp = encontrar_coluna(
+        "Ano de Compulsória"
+    )
+
+    # ========================================================
+    # MAPA DE RENOMEAÇÃO
+    # ========================================================
+
+    mapa_colunas = {}
+
+    if coluna_numero:
+        mapa_colunas[coluna_numero] = "numero"
+
+    if coluna_matricula:
+        mapa_colunas[coluna_matricula] = "matricula"
+
+    if coluna_posto:
+        mapa_colunas[coluna_posto] = "posto_graduacao"
+
+    if coluna_nome:
+        mapa_colunas[coluna_nome] = "nome"
+
+    if coluna_reserva_req:
+        mapa_colunas[coluna_reserva_req] = (
+            "reserva_requerimento"
+        )
+
+    if coluna_reserva_comp:
+        mapa_colunas[coluna_reserva_comp] = (
+            "reserva_compulsoria"
+        )
+
+    if coluna_dias_req:
+        mapa_colunas[coluna_dias_req] = (
+            "dias_requerimento"
+        )
+
+    if coluna_dias_comp:
+        mapa_colunas[coluna_dias_comp] = (
+            "dias_compulsoria"
+        )
+
+    if coluna_ano_req:
+        mapa_colunas[coluna_ano_req] = (
+            "ano_requerimento"
+        )
+
+    if coluna_ano_comp:
+        mapa_colunas[coluna_ano_comp] = (
+            "ano_compulsoria"
+        )
+
+    # ========================================================
+    # RENOMEIA
+    # ========================================================
+
+    df = df.rename(
+        columns=mapa_colunas
+    )
+
+    # ========================================================
+    # VERIFICA COLUNAS IMPORTANTES
+    # ========================================================
+
+    colunas_obrigatorias = [
+
+        "posto_graduacao",
+
+        "nome",
+
+        "dias_requerimento",
+
+        "dias_compulsoria",
+
+        "ano_requerimento",
+
+        "ano_compulsoria"
+    ]
+
+    colunas_faltantes = [
+
+        coluna
+
+        for coluna in colunas_obrigatorias
+
+        if coluna not in df.columns
+    ]
+
+    if colunas_faltantes:
+
+        raise ValueError(
+            "As seguintes colunas não foram encontradas "
+            "na aba Página4: "
+            + ", ".join(colunas_faltantes)
+        )
+
+    # ========================================================
+    # CAMPOS VAZIOS
+    # ========================================================
+
+    df = df.replace(
+        {
+            None: pd.NA,
+            "": pd.NA
+        }
+    )
+
+    # ========================================================
+    # CONVERSÃO NUMÉRICA
+    # ========================================================
+
+    colunas_numericas = [
+
+        "numero",
+
+        "dias_requerimento",
+
+        "dias_compulsoria",
+
+        "ano_requerimento",
+
+        "ano_compulsoria"
+    ]
+
+    for coluna in colunas_numericas:
+
+        if coluna in df.columns:
+
+            # Primeiro tenta conversão normal
+            df[coluna] = pd.to_numeric(
+                df[coluna],
+                errors="coerce"
+            )
+
+    # ========================================================
+    # CLASSIFICAÇÃO OFICIAIS / PRAÇAS
+    # ========================================================
+
+    postos_oficiais = [
 
         "cel",
 
@@ -229,470 +304,52 @@ def classificar_grupo(posto):
         "2° ten qoa",
 
         "aspirante"
-    }
-
-    if texto in oficiais:
-
-        return "Oficiais"
-
-    return "Praças"
-
-
-# ============================================================
-# CARREGAR DADOS DO GOOGLE SHEETS
-# ============================================================
-
-@st.cache_data(ttl=300)
-def carregar_dados():
-
-    # --------------------------------------------------------
-    # PERMISSÕES
-    # --------------------------------------------------------
-
-    scopes = [
-
-        "https://www.googleapis.com/auth/spreadsheets.readonly",
-
-        "https://www.googleapis.com/auth/drive.readonly"
-
     ]
 
-    # --------------------------------------------------------
-    # CREDENCIAIS
-    # --------------------------------------------------------
+    def normalizar_posto(valor):
 
-    credentials = Credentials.from_service_account_info(
+        if pd.isna(valor):
 
-        st.secrets[
-            "google_service_account"
-        ],
+            return ""
 
-        scopes=scopes
-    )
+        texto = str(valor).strip()
 
-    # --------------------------------------------------------
-    # CONEXÃO
-    # --------------------------------------------------------
-
-    client = gspread.authorize(
-        credentials
-    )
-
-    # --------------------------------------------------------
-    # PLANILHA
-    # --------------------------------------------------------
-
-    spreadsheet = client.open_by_key(
-        st.secrets[
-            "spreadsheet_id"
-        ]
-    )
-
-    # --------------------------------------------------------
-    # ABA
-    # --------------------------------------------------------
-
-    worksheet = spreadsheet.worksheet(
-        "Página4"
-    )
-
-    # --------------------------------------------------------
-    # LER TODOS OS VALORES
-    #
-    # Usamos get_all_values() para preservar
-    # os valores exibidos no Google Sheets.
-    # --------------------------------------------------------
-
-    valores = worksheet.get_all_values()
-
-    if not valores:
-
-        raise ValueError(
-            "A aba Página4 está vazia."
+        texto = texto.replace(
+            "º",
+            "°"
         )
 
-    # --------------------------------------------------------
-    # CABEÇALHO
-    # --------------------------------------------------------
-
-    cabecalho = valores[0]
-
-    # --------------------------------------------------------
-    # DADOS
-    # --------------------------------------------------------
-
-    dados = valores[1:]
-
-    # --------------------------------------------------------
-    # DATAFRAME
-    # --------------------------------------------------------
-
-    df = pd.DataFrame(
-        dados,
-        columns=cabecalho
-    )
-
-    # --------------------------------------------------------
-    # MAPA DAS COLUNAS
-    # --------------------------------------------------------
-
-    mapa_normalizado = {}
-
-    for coluna in df.columns:
-
-        chave = normalizar_coluna(
-            coluna
+        texto = " ".join(
+            texto.split()
         )
 
-        mapa_normalizado[
-            chave
-        ] = coluna
-
-    # ========================================================
-    # LOCALIZAR COLUNAS
-    # ========================================================
-
-    coluna_numero = encontrar_coluna(
-
-        mapa_normalizado,
-
-        [
-            "numero",
-            "nº",
-            "n°",
-            "no",
-            "n"
-        ]
-    )
+        return texto.lower()
 
 
-    coluna_matricula = encontrar_coluna(
+    def classificar_grupo(valor):
 
-        mapa_normalizado,
-
-        [
-            "matricula",
-            "matrícula"
-        ]
-    )
-
-
-    coluna_posto = encontrar_coluna(
-
-        mapa_normalizado,
-
-        [
-            "posto / graduação",
-            "posto/graduação",
-            "posto graduacao",
-            "posto graduação",
-            "posto",
-            "graduação",
-            "graduacao"
-        ]
-    )
-
-
-    coluna_nome = encontrar_coluna(
-
-        mapa_normalizado,
-
-        [
-            "nome"
-        ]
-    )
-
-
-    coluna_reserva_requerimento = encontrar_coluna(
-
-        mapa_normalizado,
-
-        [
-            "reserva requerimento",
-            "reserva_requerimento"
-        ]
-    )
-
-
-    coluna_reserva_compulsoria = encontrar_coluna(
-
-        mapa_normalizado,
-
-        [
-            "reserva compulsória",
-            "reserva compulsoria",
-            "reserva_compulsoria"
-        ]
-    )
-
-
-    coluna_dias_requerimento = encontrar_coluna(
-
-        mapa_normalizado,
-
-        [
-            "dias para requerimento",
-            "dias p/ requerimento",
-            "dias_requerimento"
-        ]
-    )
-
-
-    coluna_dias_compulsoria = encontrar_coluna(
-
-        mapa_normalizado,
-
-        [
-            "dias para compulsória",
-            "dias para compulsoria",
-            "dias p/ compulsória",
-            "dias p/ compulsoria",
-            "dias_compulsoria"
-        ]
-    )
-
-
-    coluna_ano_requerimento = encontrar_coluna(
-
-        mapa_normalizado,
-
-        [
-            "ano de requerimento",
-            "ano requerimento",
-            "ano_requerimento"
-        ]
-    )
-
-
-    coluna_ano_compulsoria = encontrar_coluna(
-
-        mapa_normalizado,
-
-        [
-            "ano de compulsória",
-            "ano de compulsoria",
-            "ano compulsoria",
-            "ano_compulsoria"
-        ]
-    )
-
-
-    # ========================================================
-    # VERIFICAR COLUNAS OBRIGATÓRIAS
-    # ========================================================
-
-    colunas_obrigatorias = {
-
-        "Nº":
-            coluna_numero,
-
-        "Matrícula":
-            coluna_matricula,
-
-        "Posto / Graduação":
-            coluna_posto,
-
-        "Nome":
-            coluna_nome,
-
-        "Dias para Requerimento":
-            coluna_dias_requerimento,
-
-        "Dias para Compulsória":
-            coluna_dias_compulsoria,
-
-        "Ano de Requerimento":
-            coluna_ano_requerimento,
-
-        "Ano de Compulsória":
-            coluna_ano_compulsoria
-    }
-
-
-    faltantes = [
-
-        nome
-
-        for nome, coluna
-        in colunas_obrigatorias.items()
-
-        if coluna is None
-    ]
-
-
-    if faltantes:
-
-        raise ValueError(
-
-            "As seguintes colunas não foram "
-            "encontradas na aba Página4:\n\n"
-
-            + "\n".join(
-
-                f"- {item}"
-
-                for item in faltantes
-            )
+        posto = normalizar_posto(
+            valor
         )
 
+        if posto in postos_oficiais:
 
-    # ========================================================
-    # RENOMEAR COLUNAS
-    # ========================================================
+            return "Oficiais"
 
-    renomear = {
-
-        coluna_numero:
-            "numero",
-
-        coluna_matricula:
-            "matricula",
-
-        coluna_posto:
-            "posto_graduacao",
-
-        coluna_nome:
-            "nome",
-
-        coluna_dias_requerimento:
-            "dias_requerimento",
-
-        coluna_dias_compulsoria:
-            "dias_compulsoria",
-
-        coluna_ano_requerimento:
-            "ano_requerimento",
-
-        coluna_ano_compulsoria:
-            "ano_compulsoria"
-    }
+        return "Praças"
 
 
-    # Colunas opcionais
-    if coluna_reserva_requerimento is not None:
-
-        renomear[
-            coluna_reserva_requerimento
-        ] = "reserva_requerimento"
-
-
-    if coluna_reserva_compulsoria is not None:
-
-        renomear[
-            coluna_reserva_compulsoria
-        ] = "reserva_compulsoria"
-
-
-    df = df.rename(
-        columns=renomear
+    df["grupo"] = df[
+        "posto_graduacao"
+    ].apply(
+        classificar_grupo
     )
-
-
-    # ========================================================
-    # GARANTIR COLUNAS OPCIONAIS
-    # ========================================================
-
-    if "reserva_requerimento" not in df.columns:
-
-        df[
-            "reserva_requerimento"
-        ] = ""
-
-
-    if "reserva_compulsoria" not in df.columns:
-
-        df[
-            "reserva_compulsoria"
-        ] = ""
-
-
-    # ========================================================
-    # CONVERTER DIAS
-    # ========================================================
-
-    df[
-        "dias_requerimento"
-    ] = (
-
-        df[
-            "dias_requerimento"
-        ]
-
-        .apply(
-            converter_numero
-        )
-    )
-
-
-    df[
-        "dias_compulsoria"
-    ] = (
-
-        df[
-            "dias_compulsoria"
-        ]
-
-        .apply(
-            converter_numero
-        )
-    )
-
-
-    # ========================================================
-    # CONVERTER ANOS
-    # ========================================================
-
-    df[
-        "ano_requerimento"
-    ] = (
-
-        df[
-            "ano_requerimento"
-        ]
-
-        .apply(
-            converter_numero
-        )
-    )
-
-
-    df[
-        "ano_compulsoria"
-    ] = (
-
-        df[
-            "ano_compulsoria"
-        ]
-
-        .apply(
-            converter_numero
-        )
-    )
-
-
-    # ========================================================
-    # CLASSIFICAR GRUPO
-    # ========================================================
-
-    df[
-        "grupo"
-    ] = (
-
-        df[
-            "posto_graduacao"
-        ]
-
-        .apply(
-            classificar_grupo
-        )
-    )
-
 
     return df
 
 
 # ============================================================
-# CARREGAR DADOS
+# CARREGAMENTO
 # ============================================================
 
 try:
@@ -705,11 +362,32 @@ except Exception as erro:
         "Erro ao carregar os dados da planilha."
     )
 
-    st.exception(
-        erro
+    st.error(
+        str(erro)
     )
 
     st.stop()
+
+
+# ============================================================
+# TÍTULO
+# ============================================================
+
+st.html(
+    """
+    <div style="
+        text-align:center;
+        margin-top:10px;
+        margin-bottom:20px;
+    ">
+        <h1>📊 Planejamento de Efetivo</h1>
+    </div>
+    """
+)
+
+st.caption(
+    "Painel de acompanhamento e projeção do efetivo"
+)
 
 
 # ============================================================
@@ -746,93 +424,71 @@ postos = sorted(
     df[
         "posto_graduacao"
     ]
-
     .dropna()
-
     .astype(str)
-
     .unique()
+    .tolist()
 )
 
 
-filtro_posto = st.sidebar.selectbox(
+filtro_posto = st.sidebar.multiselect(
 
     "Posto / Graduação",
 
-    [
-        "Todos"
-    ] + postos
+    options=postos
 )
 
 
 # ============================================================
-# FILTRO ANO DE REQUERIMENTO
+# FILTRO ANO REQUERIMENTO
 # ============================================================
 
 anos_requerimento = sorted(
 
-    pd.to_numeric(
-
-        df[
-            "ano_requerimento"
-        ],
-
-        errors="coerce"
-    )
-
+    df[
+        "ano_requerimento"
+    ]
     .dropna()
-
     .astype(int)
-
     .unique()
+    .tolist()
 )
 
 
-filtro_ano_requerimento = st.sidebar.selectbox(
+filtro_ano_requerimento = st.sidebar.multiselect(
 
     "Ano de Requerimento",
 
-    [
-        "Todos"
-    ] + anos_requerimento
+    options=anos_requerimento
 )
 
 
 # ============================================================
-# FILTRO ANO DE COMPULSÓRIA
+# FILTRO ANO COMPULSÓRIA
 # ============================================================
 
 anos_compulsoria = sorted(
 
-    pd.to_numeric(
-
-        df[
-            "ano_compulsoria"
-        ],
-
-        errors="coerce"
-    )
-
+    df[
+        "ano_compulsoria"
+    ]
     .dropna()
-
     .astype(int)
-
     .unique()
+    .tolist()
 )
 
 
-filtro_ano_compulsoria = st.sidebar.selectbox(
+filtro_ano_compulsoria = st.sidebar.multiselect(
 
     "Ano de Compulsória",
 
-    [
-        "Todos"
-    ] + anos_compulsoria
+    options=anos_compulsoria
 )
 
 
 # ============================================================
-# APLICAR FILTROS
+# APLICA FILTROS NA TABELA
 # ============================================================
 
 resultado = df.copy()
@@ -841,51 +497,38 @@ resultado = df.copy()
 if filtro_grupo != "Todos":
 
     resultado = resultado[
-        resultado[
-            "grupo"
-        ] == filtro_grupo
+        resultado["grupo"] == filtro_grupo
     ]
 
 
-if filtro_posto != "Todos":
+if filtro_posto:
 
     resultado = resultado[
-
         resultado[
             "posto_graduacao"
-        ]
-
-        .astype(str)
-
-        == str(
+        ].isin(
             filtro_posto
         )
     ]
 
 
-if filtro_ano_requerimento != "Todos":
+if filtro_ano_requerimento:
 
     resultado = resultado[
-
         resultado[
             "ano_requerimento"
-        ]
-
-        == float(
+        ].isin(
             filtro_ano_requerimento
         )
     ]
 
 
-if filtro_ano_compulsoria != "Todos":
+if filtro_ano_compulsoria:
 
     resultado = resultado[
-
         resultado[
             "ano_compulsoria"
-        ]
-
-        == float(
+        ].isin(
             filtro_ano_compulsoria
         )
     ]
@@ -895,114 +538,50 @@ if filtro_ano_compulsoria != "Todos":
 # INDICADORES
 # ============================================================
 
-st.subheader(
-    "📌 Indicadores"
-)
-
-
-total_efetivo = len(
+total_registros = len(
     resultado
 )
 
 
-total_oficiais = (
-
-    resultado[
-        "grupo"
-    ]
-
-    .eq(
-        "Oficiais"
-    )
-
-    .sum()
-)
-
-
-total_pracas = (
-
-    resultado[
-        "grupo"
-    ]
-
-    .eq(
-        "Praças"
-    )
-
-    .sum()
-)
-
-
 requerimento_1_ano = (
-
     resultado[
         "dias_requerimento"
     ]
-
-    .le(
-        365.25
-    )
-
+    .le(365.25)
     .sum()
 )
 
 
 requerimento_5_anos = (
-
     resultado[
         "dias_requerimento"
     ]
-
-    .le(
-        5 * 365.25
-    )
-
+    .le(5 * 365.25)
     .sum()
 )
 
 
 compulsoria_5_anos = (
-
     resultado[
         "dias_compulsoria"
     ]
-
-    .le(
-        5 * 365.25
-    )
-
+    .le(5 * 365.25)
     .sum()
 )
 
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4 = st.columns(4)
 
 
 with col1:
 
     st.metric(
-        "Efetivo",
-        total_efetivo
+        "Total de registros",
+        total_registros
     )
 
 
 with col2:
-
-    st.metric(
-        "Oficiais",
-        total_oficiais
-    )
-
-
-with col3:
-
-    st.metric(
-        "Praças",
-        total_pracas
-    )
-
-
-with col4:
 
     st.metric(
         "Requerimento ≤ 1 ano",
@@ -1010,7 +589,15 @@ with col4:
     )
 
 
-with col5:
+with col3:
+
+    st.metric(
+        "Requerimento ≤ 5 anos",
+        requerimento_5_anos
+    )
+
+
+with col4:
 
     st.metric(
         "Compulsória ≤ 5 anos",
@@ -1019,21 +606,20 @@ with col5:
 
 
 # ============================================================
-# ESPAÇAMENTO
-# ============================================================
-
-st.markdown(
-    "<div style='height:45px'></div>",
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
-# TABELA DO EFETIVO
+# TABELA PRINCIPAL
+#
+# ATENÇÃO:
+# NÃO MOSTRA MAIS:
+# - Anos p/ Requerimento
+# - Anos p/ Compulsória
+#
+# MOSTRA:
+# - Dias para Requerimento
+# - Dias para Compulsória
 # ============================================================
 
 st.subheader(
-    "👥 Efetivo"
+    "📋 Efetivo"
 )
 
 
@@ -1059,15 +645,24 @@ colunas_exibicao = [
 ]
 
 
-resultado_exibicao = (
+colunas_exibicao = [
 
-    resultado[
-        colunas_exibicao
-    ]
+    coluna
 
-    .copy()
-)
+    for coluna in colunas_exibicao
 
+    if coluna in resultado.columns
+]
+
+
+resultado_exibicao = resultado[
+    colunas_exibicao
+].copy()
+
+
+# ============================================================
+# NOMES PARA EXIBIÇÃO
+# ============================================================
 
 nomes_colunas = {
 
@@ -1100,22 +695,17 @@ nomes_colunas = {
 }
 
 
-resultado_exibicao = (
-
-    resultado_exibicao
-
-    .rename(
-        columns=nomes_colunas
-    )
+resultado_exibicao = resultado_exibicao.rename(
+    columns=nomes_colunas
 )
 
 
-# Valores vazios em vez de NaN
-resultado_exibicao = (
+# ============================================================
+# VAZIOS APARECEM EM BRANCO
+# ============================================================
 
-    resultado_exibicao
-
-    .fillna("")
+resultado_exibicao = resultado_exibicao.fillna(
+    ""
 )
 
 
@@ -1130,262 +720,198 @@ st.dataframe(
 
 
 # ============================================================
-# PLANEJAMENTO
+# ESPAÇO
 # ============================================================
 
-st.markdown(
-    "<div style='height:45px'></div>",
-    unsafe_allow_html=True
+st.html(
+    "<div style='height:45px'></div>"
 )
 
 
-st.subheader(
-    "📈 Cenários de Planejamento"
+# ============================================================
+# CENÁRIOS DE PLANEJAMENTO
+# ============================================================
+
+st.html(
+    """
+    <div style="
+        text-align:center;
+        margin-top:10px;
+        margin-bottom:20px;
+    ">
+        <h2>📈 Cenários de Planejamento</h2>
+    </div>
+    """
+)
+
+
+st.write(
+    "As projeções consideram o grupo selecionado "
+    "no filtro de Grupo."
+)
+
+
+# ============================================================
+# CONFIGURAÇÃO DA PROJEÇÃO
+# ============================================================
+
+ANO_INICIAL = 2026
+
+ANO_FINAL = 2035
+
+
+anos = list(
+    range(
+        ANO_INICIAL,
+        ANO_FINAL + 1
+    )
 )
 
 
 # ============================================================
 # BASE DO PLANEJAMENTO
-# ============================================================
-
-# O planejamento utiliza somente o filtro de GRUPO.
 #
-# Os filtros de Posto/Graduação e Ano não alteram
-# o efetivo inicial utilizado na projeção.
-
-
-df_planejamento = df.copy()
-
-
-if filtro_grupo != "Todos":
-
-    df_planejamento = df_planejamento[
-
-        df_planejamento[
-            "grupo"
-        ] == filtro_grupo
-    ]
-
-
+# SOMENTE O FILTRO DE GRUPO É CONSIDERADO.
 # ============================================================
-# EFETIVO INICIAL DE 2026
-# ============================================================
+
+if filtro_grupo == "Todos":
+
+    df_planejamento = df.copy()
+
+else:
+
+    df_planejamento = df[
+        df["grupo"] == filtro_grupo
+    ].copy()
+
 
 efetivo_inicial = len(
     df_planejamento
 )
 
 
-efetivo_oficiais = (
-
-    df_planejamento[
-        "grupo"
-    ]
-
-    .eq(
-        "Oficiais"
-    )
-
-    .sum()
-)
-
-
-efetivo_pracas = (
-
-    df_planejamento[
-        "grupo"
-    ]
-
-    .eq(
-        "Praças"
-    )
-
-    .sum()
-)
-
-
 # ============================================================
-# CENÁRIOS
+# SAÍDAS POR REQUERIMENTO
 # ============================================================
 
-cenarios = {
-
-    "Cenário 01": {
-
-        "tipo_saida":
-            "Requerimento",
-
-        "oficiais":
-            30,
-
-        "pracas":
-            270
-    },
+saidas_requerimento = {}
 
 
-    "Cenário 02": {
+for ano in anos:
 
-        "tipo_saida":
-            "Requerimento",
+    saidas_requerimento[ano] = int(
 
-        "oficiais":
-            20,
-
-        "pracas":
-            240
-    },
-
-
-    "Cenário 03": {
-
-        "tipo_saida":
-            "Compulsória",
-
-        "oficiais":
-            30,
-
-        "pracas":
-            270
-    },
-
-
-    "Cenário 04": {
-
-        "tipo_saida":
-            "Compulsória",
-
-        "oficiais":
-            20,
-
-        "pracas":
-            240
-    }
-}
-
-
-# ============================================================
-# CALCULAR SAÍDAS
-# ============================================================
-
-def calcular_saidas(
-    base,
-    ano,
-    tipo_saida
-):
-
-    # 2026 não possui saídas
-    if ano == 2026:
-
-        return 0
-
-
-    if tipo_saida == "Requerimento":
-
-        coluna = (
+        df_planejamento[
             "ano_requerimento"
-        )
-
-    else:
-
-        coluna = (
-            "ano_compulsoria"
-        )
-
-
-    return int(
-
-        (
-            base[
-                coluna
-            ]
-
-            == ano
-        )
-
+        ]
+        .eq(ano)
         .sum()
+
     )
 
 
 # ============================================================
-# PROJETAR CENÁRIO
+# SAÍDAS POR COMPULSÓRIA
 # ============================================================
 
-def projetar_cenario(
+saidas_compulsoria = {}
 
-    base,
+
+for ano in anos:
+
+    saidas_compulsoria[ano] = int(
+
+        df_planejamento[
+            "ano_compulsoria"
+        ]
+        .eq(ano)
+        .sum()
+
+    )
+
+
+# ============================================================
+# FUNÇÃO DOS CENÁRIOS
+# ============================================================
+
+def construir_cenario(
 
     tipo_saida,
 
-    novas_vagas_oficiais,
+    entradas_oficiais,
 
-    novas_vagas_pracas,
-
-    ano_inicial=2026,
-
-    ano_final=2035
+    entradas_pracas
 
 ):
 
-    registros = []
+    linhas = []
+
+    efetivo_atual = efetivo_inicial
 
 
-    # Efetivo de 2026
-    efetivo_atual = len(
-        base
-    )
+    for ano in anos:
 
+        # ====================================================
+        # 2026 = ANO BASE
+        #
+        # NÃO TEM ENTRADAS
+        # NÃO TEM SAÍDAS
+        # ====================================================
 
-    # --------------------------------------------------------
-    # LOOP DOS ANOS
-    # --------------------------------------------------------
+        if ano == ANO_INICIAL:
 
-    for ano in range(
+            linhas.append({
 
-        ano_inicial,
+                "Ano":
+                    ano,
 
-        ano_final + 1
+                "Efetivo inicial":
+                    efetivo_atual,
 
-    ):
+                "Saídas":
+                    0,
+
+                "Novos Oficiais":
+                    0,
+
+                "Novas Praças":
+                    0,
+
+                "Entradas":
+                    0,
+
+                "Saldo do ano":
+                    0,
+
+                "Efetivo projetado":
+                    efetivo_atual
+            })
+
+            continue
 
 
         # ====================================================
-        # 2026
+        # SAÍDAS
         # ====================================================
 
-        if ano == 2026:
+        if tipo_saida == "requerimento":
 
-            saidas = 0
-
-            novos_oficiais = 0
-
-            novas_pracas = 0
-
-
-        # ====================================================
-        # 2027 EM DIANTE
-        # ====================================================
+            saidas = (
+                saidas_requerimento
+                .get(
+                    ano,
+                    0
+                )
+            )
 
         else:
 
-            saidas = calcular_saidas(
-
-                base,
-
-                ano,
-
-                tipo_saida
-            )
-
-
-            novos_oficiais = (
-
-                novas_vagas_oficiais
-            )
-
-
-            novas_pracas = (
-
-                novas_vagas_pracas
+            saidas = (
+                saidas_compulsoria
+                .get(
+                    ano,
+                    0
+                )
             )
 
 
@@ -1393,49 +919,65 @@ def projetar_cenario(
         # ENTRADAS
         # ====================================================
 
+        if filtro_grupo == "Oficiais":
+
+            novos_oficiais = (
+                entradas_oficiais
+            )
+
+            novas_pracas = 0
+
+
+        elif filtro_grupo == "Praças":
+
+            novos_oficiais = 0
+
+            novas_pracas = (
+                entradas_pracas
+            )
+
+
+        else:
+
+            novos_oficiais = (
+                entradas_oficiais
+            )
+
+            novas_pracas = (
+                entradas_pracas
+            )
+
+
         entradas = (
-
             novos_oficiais
-
             +
-
             novas_pracas
         )
 
 
         # ====================================================
-        # SALDO DO ANO
+        # SALDO
         # ====================================================
 
         saldo = (
-
             entradas
-
             -
-
             saidas
         )
 
 
         # ====================================================
-        # EFETIVO PROJETADO
+        # PROJEÇÃO
         # ====================================================
 
         efetivo_projetado = (
-
             efetivo_atual
-
             +
-
             saldo
         )
 
 
-        # ====================================================
-        # REGISTRO
-        # ====================================================
-
-        registros.append({
+        linhas.append({
 
             "Ano":
                 ano,
@@ -1464,7 +1006,7 @@ def projetar_cenario(
 
 
         # ====================================================
-        # PRÓXIMO ANO
+        # PASSA O RESULTADO PARA O ANO SEGUINTE
         # ====================================================
 
         efetivo_atual = (
@@ -1473,156 +1015,240 @@ def projetar_cenario(
 
 
     return pd.DataFrame(
-        registros
+        linhas
     )
 
 
 # ============================================================
-# GERAR OS 4 CENÁRIOS
+# CENÁRIO 01
 # ============================================================
 
-resultados_cenarios = {}
+cenario_01 = construir_cenario(
+
+    "requerimento",
+
+    30,
+
+    270
+)
 
 
-for nome_cenario, configuracao in cenarios.items():
+# ============================================================
+# CENÁRIO 02
+# ============================================================
 
-    resultados_cenarios[
-        nome_cenario
-    ] = projetar_cenario(
+cenario_02 = construir_cenario(
 
-        df_planejamento,
+    "requerimento",
 
-        configuracao[
-            "tipo_saida"
-        ],
+    20,
 
-        configuracao[
-            "oficiais"
-        ],
+    240
+)
 
-        configuracao[
-            "pracas"
-        ],
 
-        2026,
+# ============================================================
+# CENÁRIO 03
+# ============================================================
 
-        2035
+cenario_03 = construir_cenario(
+
+    "compulsoria",
+
+    30,
+
+    270
+)
+
+
+# ============================================================
+# CENÁRIO 04
+# ============================================================
+
+cenario_04 = construir_cenario(
+
+    "compulsoria",
+
+    20,
+
+    240
+)
+
+
+# ============================================================
+# RESUMO DOS CENÁRIOS
+# ============================================================
+
+st.subheader(
+    "📊 Resumo dos Cenários"
+)
+
+
+col1, col2, col3, col4 = st.columns(4)
+
+
+with col1:
+
+    st.metric(
+
+        "Cenário 01",
+
+        int(
+            cenario_01.iloc[-1][
+                "Efetivo projetado"
+            ]
+        ),
+
+        "+300/ano"
+    )
+
+
+with col2:
+
+    st.metric(
+
+        "Cenário 02",
+
+        int(
+            cenario_02.iloc[-1][
+                "Efetivo projetado"
+            ]
+        ),
+
+        "+260/ano"
+    )
+
+
+with col3:
+
+    st.metric(
+
+        "Cenário 03",
+
+        int(
+            cenario_03.iloc[-1][
+                "Efetivo projetado"
+            ]
+        ),
+
+        "+300/ano"
+    )
+
+
+with col4:
+
+    st.metric(
+
+        "Cenário 04",
+
+        int(
+            cenario_04.iloc[-1][
+                "Efetivo projetado"
+            ]
+        ),
+
+        "+260/ano"
     )
 
 
 # ============================================================
-# CARDS DOS CENÁRIOS
+# ESPAÇO
 # ============================================================
 
-cols = st.columns(4)
-
-
-for coluna, (
-    nome,
-    configuracao
-) in zip(
-    cols,
-    cenarios.items()
-):
-
-
-    df_cenario = (
-
-        resultados_cenarios[
-            nome
-        ]
-    )
-
-
-    efetivo_2035 = int(
-
-        df_cenario.loc[
-
-            df_cenario[
-                "Ano"
-            ] == 2035,
-
-            "Efetivo projetado"
-
-        ]
-
-        .iloc[0]
-    )
-
-
-    saidas_total = int(
-
-        df_cenario[
-            "Saídas"
-        ]
-
-        .sum()
-    )
-
-
-    entradas_total = int(
-
-        df_cenario[
-            "Entradas"
-        ]
-
-        .sum()
-    )
-
-
-    with coluna:
-
-        st.markdown(
-
-            f"""
-            <div style="
-                border:1px solid #ddd;
-                border-radius:10px;
-                padding:15px;
-                min-height:190px;
-                background-color:#fafafa;
-            ">
-
-                <h4 style="
-                    margin-top:0;
-                ">
-                    {nome}
-                </h4>
-
-                <p>
-                    <b>Saída:</b>
-                    {configuracao["tipo_saida"]}
-                </p>
-
-                <p>
-                    <b>Novos Oficiais/ano:</b>
-                    {configuracao["oficiais"]}
-                </p>
-
-                <p>
-                    <b>Novas Praças/ano:</b>
-                    {configuracao["pracas"]}
-                </p>
-
-                <p>
-                    <b>Efetivo em 2035:</b>
-                    {efetivo_2035}
-                </p>
-
-            </div>
-            """,
-
-            unsafe_allow_html=True
-        )
+st.html(
+    "<div style='height:45px'></div>"
+)
 
 
 # ============================================================
-# ESPAÇAMENTO
+# CARDS
 # ============================================================
 
-st.markdown(
-    "<div style='height:45px'></div>",
-    unsafe_allow_html=True
+st.subheader(
+    "📌 Cenários"
+)
+
+
+col1, col2 = st.columns(2)
+
+
+with col1:
+
+    st.markdown(
+        """
+        ### Cenário 01
+
+        **Saída:** Requerimento
+
+        **Entradas anuais:**
+
+        - 30 Oficiais
+        - 270 Praças
+        - **Total: 300**
+        """
+    )
+
+
+with col2:
+
+    st.markdown(
+        """
+        ### Cenário 02
+
+        **Saída:** Requerimento
+
+        **Entradas anuais:**
+
+        - 20 Oficiais
+        - 240 Praças
+        - **Total: 260**
+        """
+    )
+
+
+col3, col4 = st.columns(2)
+
+
+with col3:
+
+    st.markdown(
+        """
+        ### Cenário 03
+
+        **Saída:** Compulsória
+
+        **Entradas anuais:**
+
+        - 30 Oficiais
+        - 270 Praças
+        - **Total: 300**
+        """
+    )
+
+
+with col4:
+
+    st.markdown(
+        """
+        ### Cenário 04
+
+        **Saída:** Compulsória
+
+        **Entradas anuais:**
+
+        - 20 Oficiais
+        - 240 Praças
+        - **Total: 260**
+        """
+    )
+
+
+# ============================================================
+# ESPAÇO
+# ============================================================
+
+st.html(
+    "<div style='height:45px'></div>"
 )
 
 
@@ -1635,130 +1261,99 @@ st.subheader(
 )
 
 
-# ============================================================
-# ABAS
-# ============================================================
+tab1, tab2, tab3, tab4 = st.tabs([
 
-abas = st.tabs(
-    list(
-        cenarios.keys()
+    "Cenário 01",
+
+    "Cenário 02",
+
+    "Cenário 03",
+
+    "Cenário 04"
+])
+
+
+with tab1:
+
+    st.dataframe(
+
+        cenario_01,
+
+        use_container_width=True,
+
+        hide_index=True
     )
-)
 
 
-for aba, nome_cenario in zip(
+with tab2:
 
-    abas,
+    st.dataframe(
 
-    cenarios.keys()
+        cenario_02,
 
-):
+        use_container_width=True,
 
-
-    with aba:
-
-        configuracao = (
-
-            cenarios[
-                nome_cenario
-            ]
-        )
+        hide_index=True
+    )
 
 
-        st.markdown(
+with tab3:
 
-            f"""
-            ### {nome_cenario}
+    st.dataframe(
 
-            **Tipo de saída:** {configuracao["tipo_saida"]}
+        cenario_03,
 
-            **Novos Oficiais por ano:** {configuracao["oficiais"]}
+        use_container_width=True,
 
-            **Novas Praças por ano:** {configuracao["pracas"]}
-            """
-        )
+        hide_index=True
+    )
 
 
-        tabela_cenario = (
+with tab4:
 
-            resultados_cenarios[
-                nome_cenario
-            ]
+    st.dataframe(
 
-            .copy()
-        )
+        cenario_04,
 
+        use_container_width=True,
 
-        st.dataframe(
-
-            tabela_cenario,
-
-            use_container_width=True,
-
-            hide_index=True
-        )
+        hide_index=True
+    )
 
 
 # ============================================================
 # COMPARAÇÃO DOS CENÁRIOS
 # ============================================================
 
-st.markdown(
-    "<div style='height:45px'></div>",
-    unsafe_allow_html=True
-)
-
-
 st.subheader(
-    "📊 Comparação dos Cenários"
+    "📈 Comparação dos Cenários"
 )
 
 
 df_comparacao = pd.DataFrame({
 
     "Ano":
-
-        resultados_cenarios[
-            "Cenário 01"
-        ][
-            "Ano"
-        ],
-
+        anos,
 
     "Cenário 01":
-
-        resultados_cenarios[
-            "Cenário 01"
-        ][
+        cenario_01[
             "Efetivo projetado"
-        ],
-
+        ].values,
 
     "Cenário 02":
-
-        resultados_cenarios[
-            "Cenário 02"
-        ][
+        cenario_02[
             "Efetivo projetado"
-        ],
-
+        ].values,
 
     "Cenário 03":
-
-        resultados_cenarios[
-            "Cenário 03"
-        ][
+        cenario_03[
             "Efetivo projetado"
-        ],
-
+        ].values,
 
     "Cenário 04":
-
-        resultados_cenarios[
-            "Cenário 04"
-        ][
+        cenario_04[
             "Efetivo projetado"
-        ]
+        ].values
 })
 
 
@@ -1774,68 +1369,41 @@ st.bar_chart(
 # TABELA CONSOLIDADA
 # ============================================================
 
-st.markdown(
-    "<div style='height:45px'></div>",
-    unsafe_allow_html=True
-)
-
-
 st.subheader(
     "📋 Efetivo Projetado por Cenário"
 )
 
 
-df_consolidado = pd.DataFrame({
+tabela_consolidada = pd.DataFrame({
 
     "Ano":
-
-        resultados_cenarios[
-            "Cenário 01"
-        ][
-            "Ano"
-        ],
-
+        anos,
 
     "Cenário 01":
-
-        resultados_cenarios[
-            "Cenário 01"
-        ][
+        cenario_01[
             "Efetivo projetado"
-        ],
-
+        ].values,
 
     "Cenário 02":
-
-        resultados_cenarios[
-            "Cenário 02"
-        ][
+        cenario_02[
             "Efetivo projetado"
-        ],
-
+        ].values,
 
     "Cenário 03":
-
-        resultados_cenarios[
-            "Cenário 03"
-        ][
+        cenario_03[
             "Efetivo projetado"
-        ],
-
+        ].values,
 
     "Cenário 04":
-
-        resultados_cenarios[
-            "Cenário 04"
-        ][
+        cenario_04[
             "Efetivo projetado"
-        ]
+        ].values
 })
 
 
 st.dataframe(
 
-    df_consolidado,
+    tabela_consolidada,
 
     use_container_width=True,
 
@@ -1844,135 +1412,173 @@ st.dataframe(
 
 
 # ============================================================
-# INDICADORES DE 2035
+# RESULTADO EM 2035
 # ============================================================
-
-st.markdown(
-    "<div style='height:45px'></div>",
-    unsafe_allow_html=True
-)
-
 
 st.subheader(
-    "🎯 Indicadores para 2035"
+    "🎯 Projeção para 2035"
 )
 
 
-colunas_2035 = st.columns(4)
+col1, col2, col3, col4 = st.columns(4)
 
 
-for coluna, nome_cenario in zip(
+with col1:
 
-    colunas_2035,
+    st.metric(
 
-    cenarios.keys()
+        "Cenário 01",
 
-):
-
-
-    df_cenario = (
-
-        resultados_cenarios[
-            nome_cenario
-        ]
-    )
-
-
-    linha_2035 = (
-
-        df_cenario[
-
-            df_cenario[
-                "Ano"
-            ] == 2035
-
-        ]
-
-        .iloc[0]
-    )
-
-
-    efetivo_2035 = int(
-
-        linha_2035[
-            "Efetivo projetado"
-        ]
-    )
-
-
-    saidas = int(
-
-        df_cenario[
-            "Saídas"
-        ]
-
-        .sum()
-    )
-
-
-    entradas = int(
-
-        df_cenario[
-            "Entradas"
-        ]
-
-        .sum()
-    )
-
-
-    with coluna:
-
-        st.metric(
-
-            f"{nome_cenario} — Efetivo 2035",
-
-            efetivo_2035
+        int(
+            cenario_01.iloc[-1][
+                "Efetivo projetado"
+            ]
         )
+    )
 
 
-        st.write(
+with col2:
 
-            f"Saídas acumuladas: **{saidas}**"
+    st.metric(
+
+        "Cenário 02",
+
+        int(
+            cenario_02.iloc[-1][
+                "Efetivo projetado"
+            ]
         )
+    )
 
 
-        st.write(
+with col3:
 
-            f"Entradas acumuladas: **{entradas}**"
+    st.metric(
+
+        "Cenário 03",
+
+        int(
+            cenario_03.iloc[-1][
+                "Efetivo projetado"
+            ]
         )
+    )
+
+
+with col4:
+
+    st.metric(
+
+        "Cenário 04",
+
+        int(
+            cenario_04.iloc[-1][
+                "Efetivo projetado"
+            ]
+        )
+    )
 
 
 # ============================================================
-# RESUMO
+# RESUMO FINAL
 # ============================================================
-
-st.markdown(
-    "<div style='height:45px'></div>",
-    unsafe_allow_html=True
-)
-
 
 st.subheader(
-    "📝 Resumo"
+    "📌 Resumo da Projeção"
 )
 
 
-st.write(
+resumo = pd.DataFrame({
 
-    f"""
-    O efetivo considerado como base para o planejamento
-    em **2026** é de **{efetivo_inicial} servidores**.
+    "Cenário": [
 
-    A projeção mantém o efetivo de 2026 sem entradas ou
-    saídas. As alterações começam a partir de **2027**.
+        "Cenário 01",
 
-    A cada ano, o cálculo é acumulativo:
+        "Cenário 02",
 
-    **Efetivo projetado = efetivo do ano anterior
-    - saídas + entradas.**
+        "Cenário 03",
 
-    Os quatro cenários consideram diferentes combinações
-    de saídas por requerimento ou compulsória e de reposição
-    anual de Oficiais e Praças.
-    """
+        "Cenário 04"
+    ],
+
+    "Tipo de saída": [
+
+        "Requerimento",
+
+        "Requerimento",
+
+        "Compulsória",
+
+        "Compulsória"
+    ],
+
+    "Novos Oficiais/ano": [
+
+        30,
+
+        20,
+
+        30,
+
+        20
+    ],
+
+    "Novas Praças/ano": [
+
+        270,
+
+        240,
+
+        270,
+
+        240
+    ],
+
+    "Entradas/ano": [
+
+        300,
+
+        260,
+
+        300,
+
+        260
+    ],
+
+    "Efetivo em 2035": [
+
+        int(
+            cenario_01.iloc[-1][
+                "Efetivo projetado"
+            ]
+        ),
+
+        int(
+            cenario_02.iloc[-1][
+                "Efetivo projetado"
+            ]
+        ),
+
+        int(
+            cenario_03.iloc[-1][
+                "Efetivo projetado"
+            ]
+        ),
+
+        int(
+            cenario_04.iloc[-1][
+                "Efetivo projetado"
+            ]
+        )
+    ]
+})
+
+
+st.dataframe(
+
+    resumo,
+
+    use_container_width=True,
+
+    hide_index=True
 )
