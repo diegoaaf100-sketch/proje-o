@@ -7,6 +7,10 @@ from pathlib import Path
 from google.oauth2.service_account import Credentials
 
 
+# ============================================================
+# CONFIGURAÇÃO DA PÁGINA
+# ============================================================
+
 st.set_page_config(
     page_title="Dashboard de Efetivo",
     page_icon="📊",
@@ -15,21 +19,8 @@ st.set_page_config(
 
 
 # ============================================================
-# CAMINHOS DAS IMAGENS
-# ============================================================
-
-BASE_DIR = Path(__file__).resolve().parent
-PASTA_IMAGENS = BASE_DIR / "imagens"
-
-IMAGEM_DGP = PASTA_IMAGENS / "brasao_dgp.png"
-IMAGEM_CBMPE = PASTA_IMAGENS / "brasao_cbmpe.png"
-
-
-# ============================================================
 # IMAGENS DO CABEÇALHO
 # ============================================================
-
-from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -60,19 +51,6 @@ with col_centro:
             )
 
 
-st.html(
-    """
-    <h1 style="
-        text-align:center;
-        font-size:42px;
-        margin-top:15px;
-        margin-bottom:10px;
-        font-weight:700;
-    ">
-     Dashboard de Efetivo
-    </h1>
-    """
-)
 # ============================================================
 # TÍTULO
 # ============================================================
@@ -84,9 +62,8 @@ st.html(
         font-size:42px;
         margin-top:15px;
         margin-bottom:10px;
-        font-weight:700;
     ">
-        
+        📊 Dashboard de Efetivo
     </h1>
     """
 )
@@ -149,21 +126,17 @@ def converter_numero(valor):
 
     # Exemplo: 1.234,56
     if "." in valor and "," in valor:
-
         valor = valor.replace(".", "")
         valor = valor.replace(",", ".")
 
     # Exemplo: 1234,56
     elif "," in valor:
-
         valor = valor.replace(",", ".")
 
     try:
-
         return float(valor)
 
     except Exception:
-
         return pd.NA
 
 
@@ -180,7 +153,6 @@ def encontrar_coluna(mapa, possibilidades):
         )
 
         if chave in mapa:
-
             return mapa[chave]
 
     return None
@@ -223,7 +195,6 @@ def carregar_dados():
     valores = worksheet.get_all_values()
 
     if not valores:
-
         raise ValueError(
             "A aba Página4 está vazia."
         )
@@ -355,27 +326,14 @@ def carregar_dados():
     # --------------------------------------------------------
 
     colunas_obrigatorias = {
-
         "Nº": coluna_numero,
-
         "Matrícula": coluna_matricula,
-
         "Posto / Graduação": coluna_posto,
-
         "Nome": coluna_nome,
-
-        "Dias para Requerimento":
-            coluna_dias_requerimento,
-
-        "Dias para Compulsória":
-            coluna_dias_compulsoria,
-
-        "Ano de Requerimento":
-            coluna_ano_requerimento,
-
-        "Ano de Compulsória":
-            coluna_ano_compulsoria
-
+        "Dias para Requerimento": coluna_dias_requerimento,
+        "Dias para Compulsória": coluna_dias_compulsoria,
+        "Ano de Requerimento": coluna_ano_requerimento,
+        "Ano de Compulsória": coluna_ano_compulsoria
     }
 
     faltantes = [
@@ -401,41 +359,20 @@ def carregar_dados():
 
     df = df.rename(
         columns={
-
-            coluna_numero:
-                "numero",
-
-            coluna_matricula:
-                "matricula",
-
-            coluna_posto:
-                "posto_graduacao",
-
-            coluna_nome:
-                "nome",
-
-            coluna_reserva_requerimento:
-                "reserva_requerimento"
+            coluna_numero: "numero",
+            coluna_matricula: "matricula",
+            coluna_posto: "posto_graduacao",
+            coluna_nome: "nome",
+            coluna_reserva_requerimento: "reserva_requerimento"
             if coluna_reserva_requerimento
             else "reserva_requerimento",
-
-            coluna_reserva_compulsoria:
-                "reserva_compulsoria"
+            coluna_reserva_compulsoria: "reserva_compulsoria"
             if coluna_reserva_compulsoria
             else "reserva_compulsoria",
-
-            coluna_dias_requerimento:
-                "dias_requerimento",
-
-            coluna_dias_compulsoria:
-                "dias_compulsoria",
-
-            coluna_ano_requerimento:
-                "ano_requerimento",
-
-            coluna_ano_compulsoria:
-                "ano_compulsoria"
-
+            coluna_dias_requerimento: "dias_requerimento",
+            coluna_dias_compulsoria: "dias_compulsoria",
+            coluna_ano_requerimento: "ano_requerimento",
+            coluna_ano_compulsoria: "ano_compulsoria"
         }
     )
 
@@ -444,11 +381,9 @@ def carregar_dados():
     # --------------------------------------------------------
 
     if "reserva_requerimento" not in df.columns:
-
         df["reserva_requerimento"] = ""
 
     if "reserva_compulsoria" not in df.columns:
-
         df["reserva_compulsoria"] = ""
 
     # --------------------------------------------------------
@@ -484,7 +419,6 @@ def carregar_dados():
     # --------------------------------------------------------
 
     oficiais = {
-
         "cel",
         "tem cel",
         "maj qoc",
@@ -496,7 +430,6 @@ def carregar_dados():
         "2° ten qoc",
         "2° ten qoa",
         "aspirante"
-
     }
 
     def classificar_grupo(posto):
@@ -517,7 +450,6 @@ def carregar_dados():
         texto = texto.lower()
 
         if texto in oficiais:
-
             return "Oficiais"
 
         return "Praças"
@@ -756,7 +688,6 @@ st.subheader(
 
 
 colunas_exibicao = [
-
     "numero",
     "matricula",
     "grupo",
@@ -766,7 +697,6 @@ colunas_exibicao = [
     "dias_compulsoria",
     "ano_requerimento",
     "ano_compulsoria"
-
 ]
 
 
@@ -806,7 +736,6 @@ nomes_colunas = {
 
     "ano_compulsoria":
         "Ano de Compulsória"
-
 }
 
 
@@ -891,57 +820,28 @@ efetivo_pracas = (
 cenarios = {
 
     "Cenário 01": {
-
-        "tipo_saida":
-            "Requerimento",
-
-        "oficiais":
-            30,
-
-        "pracas":
-            270
-
+        "tipo_saida": "Requerimento",
+        "oficiais": 30,
+        "pracas": 270
     },
 
     "Cenário 02": {
-
-        "tipo_saida":
-            "Requerimento",
-
-        "oficiais":
-            20,
-
-        "pracas":
-            240
-
+        "tipo_saida": "Requerimento",
+        "oficiais": 20,
+        "pracas": 240
     },
 
     "Cenário 03": {
-
-        "tipo_saida":
-            "Compulsória",
-
-        "oficiais":
-            30,
-
-        "pracas":
-            270
-
+        "tipo_saida": "Compulsória",
+        "oficiais": 30,
+        "pracas": 270
     },
 
     "Cenário 04": {
-
-        "tipo_saida":
-            "Compulsória",
-
-        "oficiais":
-            20,
-
-        "pracas":
-            240
-
+        "tipo_saida": "Compulsória",
+        "oficiais": 20,
+        "pracas": 240
     }
-
 }
 
 
@@ -956,7 +856,6 @@ def calcular_saidas(
 ):
 
     if ano == 2026:
-
         return 0
 
     if tipo_saida == "Requerimento":
@@ -1116,7 +1015,6 @@ for nome_cenario, configuracao in cenarios.items():
             2026,
 
             2035
-
         )
     )
 
@@ -1272,7 +1170,6 @@ st.subheader(
 
 df_comparacao = pd.DataFrame(
     {
-
         "Ano":
             resultados_cenarios[
                 "Cenário 01"
@@ -1297,7 +1194,6 @@ df_comparacao = pd.DataFrame(
             resultados_cenarios[
                 "Cenário 04"
             ]["Efetivo projetado"]
-
     }
 )
 
@@ -1325,7 +1221,6 @@ st.subheader(
 
 df_consolidado = pd.DataFrame(
     {
-
         "Ano":
             resultados_cenarios[
                 "Cenário 01"
@@ -1350,7 +1245,6 @@ df_consolidado = pd.DataFrame(
             resultados_cenarios[
                 "Cenário 04"
             ]["Efetivo projetado"]
-
     }
 )
 
