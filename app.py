@@ -29,6 +29,14 @@ IMAGEM_CBMPE = PASTA_IMAGENS / "brasao_cbmpe.png"
 # IMAGENS DO CABEÇALHO
 # ============================================================
 
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+
+IMAGEM_DGP = BASE_DIR / "brasao_dgp.png.png"
+IMAGEM_CBMPE = BASE_DIR / "brasao_cbmpe.png.png"
+
+
 col_esquerda, col_centro, col_direita = st.columns([1, 2, 1])
 
 with col_centro:
@@ -40,7 +48,7 @@ with col_centro:
             st.image(str(IMAGEM_DGP), width=150)
         else:
             st.error(
-                f"Imagem DGP não encontrada: {IMAGEM_DGP}"
+                f"Imagem DGP não encontrada: {IMAGEM_DGP.name}"
             )
 
     with col_img2:
@@ -48,7 +56,7 @@ with col_centro:
             st.image(str(IMAGEM_CBMPE), width=150)
         else:
             st.error(
-                f"Imagem CBMPE não encontrada: {IMAGEM_CBMPE}"
+                f"Imagem CBMPE não encontrada: {IMAGEM_CBMPE.name}"
             )
 
 
@@ -65,7 +73,6 @@ st.html(
     </h1>
     """
 )
-
 # ============================================================
 # TÍTULO
 # ============================================================
