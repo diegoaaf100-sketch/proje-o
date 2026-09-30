@@ -9,7 +9,7 @@ from google.oauth2.service_account import Credentials
 # ============================================================
 
 st.set_page_config(
-    page_title="Dashboard de Efetivo",
+    page_title="Projeção do Efetivo",
     page_icon="📊",
     layout="wide"
 )
