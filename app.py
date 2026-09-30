@@ -34,6 +34,15 @@ worksheet = spreadsheet.worksheet("Página4")
 dados = worksheet.get_all_records()
 
 return pd.DataFrame(dados)
+spreadsheet = client.open_by_key(
+    st.secrets["spreadsheet_id"]
+)
+
+worksheet = spreadsheet.worksheet("Página4")
+
+dados = worksheet.get_all_records()
+
+return pd.DataFrame(dados)
 ============================================================
 CARREGAMENTO DOS DADOS
 ============================================================
