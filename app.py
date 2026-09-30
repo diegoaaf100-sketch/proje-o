@@ -494,7 +494,7 @@ grafico = projecoes_df.set_index("Ano")[
 st.line_chart(grafico)
 
 ------------------------------------------------------------
-RESUMO FINAL — 2035
+st.subheader("📌 RESUMO FINAL — 2035")
 ------------------------------------------------------------
 
 st.subheader("📌 Efetivo projetado em 2035")
