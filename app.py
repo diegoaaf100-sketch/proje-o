@@ -28,15 +28,20 @@ IMAGEM_DGP = BASE_DIR / "brasao_dgp.png.png"
 IMAGEM_CBMPE = BASE_DIR / "brasao_cbmpe.png.png"
 
 
-col_esquerda, col_centro, col_direita = st.columns([1, 2, 1])
+# Container central mais estreito para aproximar os dois brasões
+col_esquerda, col_centro, col_direita = st.columns([1.45, 1, 1.45])
 
 with col_centro:
 
-    col_img1, col_img2 = st.columns(2)
+    # Os brasões ficam lado a lado, com espaçamento pequeno.
+    col_img1, col_img2 = st.columns([1, 1], gap="small")
 
     with col_img1:
         if IMAGEM_DGP.is_file():
-            st.image(str(IMAGEM_DGP), width=150)
+            st.image(
+                str(IMAGEM_DGP),
+                width=130
+            )
         else:
             st.error(
                 f"Imagem DGP não encontrada: {IMAGEM_DGP.name}"
@@ -44,7 +49,10 @@ with col_centro:
 
     with col_img2:
         if IMAGEM_CBMPE.is_file():
-            st.image(str(IMAGEM_CBMPE), width=150)
+            st.image(
+                str(IMAGEM_CBMPE),
+                width=130
+            )
         else:
             st.error(
                 f"Imagem CBMPE não encontrada: {IMAGEM_CBMPE.name}"
