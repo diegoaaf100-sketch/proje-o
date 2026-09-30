@@ -44,7 +44,10 @@ def carregar_dados():
 
     df = pd.DataFrame(dados)
 
+    # --------------------------------------------------------
     # Normalizar nomes das colunas
+    # --------------------------------------------------------
+
     df.columns = (
         df.columns
         .astype(str)
@@ -52,7 +55,10 @@ def carregar_dados():
         .str.strip()
     )
 
+    # --------------------------------------------------------
     # Renomear colunas
+    # --------------------------------------------------------
+
     mapa_colunas = {
         "Nº": "numero",
         "Matrícula": "matricula",
@@ -70,7 +76,10 @@ def carregar_dados():
 
     df = df.rename(columns=mapa_colunas)
 
+    # --------------------------------------------------------
     # Converter campos numéricos
+    # --------------------------------------------------------
+
     colunas_numericas = [
         "numero",
         "anos_requerimento",
@@ -90,7 +99,10 @@ def carregar_dados():
                 errors="coerce"
             )
 
+    # --------------------------------------------------------
     # Criar anos a partir dos dias, caso necessário
+    # --------------------------------------------------------
+
     if (
         "anos_requerimento" not in df.columns
         and "dias_requerimento" in df.columns
@@ -332,16 +344,16 @@ st.caption(
 
 
 # ============================================================
-# PARÂMETROS
+# PARÂMETROS DOS CENÁRIOS
 # ============================================================
 
 ANO_INICIAL = 2026
 ANO_FINAL = 2035
 
-NOVOS_P1 = 300
-NOVOS_P2 = 260
-NOVOS_P3 = 300
-NOVOS_P4 = 260
+NOVOS_CENARIO_01 = 300
+NOVOS_CENARIO_02 = 260
+NOVOS_CENARIO_03 = 300
+NOVOS_CENARIO_04 = 260
 
 anos = list(
     range(
@@ -355,8 +367,10 @@ anos = list(
 # EFETIVO INICIAL
 # ============================================================
 
-# A projeção utiliza o total da planilha,
-# independentemente dos filtros selecionados.
+# O efetivo inicial corresponde ao total de registros
+# existentes na planilha.
+#
+# A projeção NÃO sofre influência dos filtros do dashboard.
 
 efetivo_inicial = len(df)
 
@@ -397,7 +411,7 @@ def construir_cenario(
     for ano in anos:
 
         # ----------------------------------------------------
-        # SAÍDAS
+        # Determinar quantidade de saídas
         # ----------------------------------------------------
 
         if tipo_saida == "requerimento":
@@ -410,21 +424,21 @@ def construir_cenario(
 
 
         # ----------------------------------------------------
-        # ENTRADAS
+        # Entradas
         # ----------------------------------------------------
 
         entradas = novas_entradas
 
 
         # ----------------------------------------------------
-        # SALDO DO ANO
+        # Saldo do ano
         # ----------------------------------------------------
 
         saldo = entradas - saidas
 
 
         # ----------------------------------------------------
-        # EFETIVO PROJETADO
+        # Efetivo projetado
         # ----------------------------------------------------
 
         efetivo_projetado = (
@@ -433,7 +447,7 @@ def construir_cenario(
 
 
         # ----------------------------------------------------
-        # REGISTRAR ANO
+        # Registrar informações
         # ----------------------------------------------------
 
         linhas.append({
@@ -458,7 +472,10 @@ def construir_cenario(
         })
 
 
-        # Próximo ano começa com o efetivo projetado
+        # ----------------------------------------------------
+        # O próximo ano começa com o efetivo projetado
+        # ----------------------------------------------------
+
         efetivo_atual = efetivo_projetado
 
 
@@ -466,30 +483,30 @@ def construir_cenario(
 
 
 # ============================================================
-# CONSTRUIR OS QUATRO CENÁRIOS
+# CONSTRUIR OS 4 CENÁRIOS
 # ============================================================
 
-df_p1 = construir_cenario(
+df_cenario_01 = construir_cenario(
     "requerimento",
-    NOVOS_P1
+    NOVOS_CENARIO_01
 )
 
 
-df_p2 = construir_cenario(
+df_cenario_02 = construir_cenario(
     "requerimento",
-    NOVOS_P2
+    NOVOS_CENARIO_02
 )
 
 
-df_p3 = construir_cenario(
+df_cenario_03 = construir_cenario(
     "compulsoria",
-    NOVOS_P3
+    NOVOS_CENARIO_03
 )
 
 
-df_p4 = construir_cenario(
+df_cenario_04 = construir_cenario(
     "compulsoria",
-    NOVOS_P4
+    NOVOS_CENARIO_04
 )
 
 
@@ -500,12 +517,12 @@ df_p4 = construir_cenario(
 st.subheader("📌 Indicadores do Planejamento")
 
 
-total_saidas_req = sum(
+total_saidas_requerimento = sum(
     saidas_requerimento.values()
 )
 
 
-total_saidas_comp = sum(
+total_saidas_compulsoria = sum(
     saidas_compulsoria.values()
 )
 
@@ -525,7 +542,7 @@ with c2:
 
     st.metric(
         "Saídas por requerimento",
-        f"{total_saidas_req:,}".replace(",", ".")
+        f"{total_saidas_requerimento:,}".replace(",", ".")
     )
 
 
@@ -533,7 +550,7 @@ with c3:
 
     st.metric(
         "Saídas por compulsória",
-        f"{total_saidas_comp:,}".replace(",", ".")
+        f"{total_saidas_compulsoria:,}".replace(",", ".")
     )
 
 
@@ -546,33 +563,44 @@ with c4:
 
 
 # ============================================================
-# CENÁRIOS
+# RESULTADOS DOS CENÁRIOS
 # ============================================================
 
 st.subheader("📈 Cenários de Planejamento")
 
 
-p1_final = int(
-    df_p1.iloc[-1]["Efetivo projetado"]
+cenario_01_final = int(
+    df_cenario_01.iloc[-1]["Efetivo projetado"]
 )
 
-p2_final = int(
-    df_p2.iloc[-1]["Efetivo projetado"]
+cenario_02_final = int(
+    df_cenario_02.iloc[-1]["Efetivo projetado"]
 )
 
-p3_final = int(
-    df_p3.iloc[-1]["Efetivo projetado"]
+cenario_03_final = int(
+    df_cenario_03.iloc[-1]["Efetivo projetado"]
 )
 
-p4_final = int(
-    df_p4.iloc[-1]["Efetivo projetado"]
+cenario_04_final = int(
+    df_cenario_04.iloc[-1]["Efetivo projetado"]
 )
 
 
-var_p1 = p1_final - efetivo_inicial
-var_p2 = p2_final - efetivo_inicial
-var_p3 = p3_final - efetivo_inicial
-var_p4 = p4_final - efetivo_inicial
+variacao_cenario_01 = (
+    cenario_01_final - efetivo_inicial
+)
+
+variacao_cenario_02 = (
+    cenario_02_final - efetivo_inicial
+)
+
+variacao_cenario_03 = (
+    cenario_03_final - efetivo_inicial
+)
+
+variacao_cenario_04 = (
+    cenario_04_final - efetivo_inicial
+)
 
 
 s1, s2, s3, s4 = st.columns(4)
@@ -581,121 +609,137 @@ s1, s2, s3, s4 = st.columns(4)
 with s1:
 
     st.metric(
-        "P1 — Requerimento +300",
-        f"{p1_final:,}".replace(",", "."),
-        f"{var_p1:+,}".replace(",", ".")
+        "Cenário 01 — Requerimento +300",
+        f"{cenario_01_final:,}".replace(",", "."),
+        f"{variacao_cenario_01:+,}".replace(",", ".")
     )
 
 
 with s2:
 
     st.metric(
-        "P2 — Requerimento +260",
-        f"{p2_final:,}".replace(",", "."),
-        f"{var_p2:+,}".replace(",", ".")
+        "Cenário 02 — Requerimento +260",
+        f"{cenario_02_final:,}".replace(",", "."),
+        f"{variacao_cenario_02:+,}".replace(",", ".")
     )
 
 
 with s3:
 
     st.metric(
-        "P3 — Compulsória +300",
-        f"{p3_final:,}".replace(",", "."),
-        f"{var_p3:+,}".replace(",", ".")
+        "Cenário 03 — Compulsória +300",
+        f"{cenario_03_final:,}".replace(",", "."),
+        f"{variacao_cenario_03:+,}".replace(",", ".")
     )
 
 
 with s4:
 
     st.metric(
-        "P4 — Compulsória +260",
-        f"{p4_final:,}".replace(",", "."),
-        f"{var_p4:+,}".replace(",", ".")
+        "Cenário 04 — Compulsória +260",
+        f"{cenario_04_final:,}".replace(",", "."),
+        f"{variacao_cenario_04:+,}".replace(",", ".")
     )
 
 
 # ============================================================
-# PLANEJAMENTO ANUAL POR CENÁRIO
+# PLANEJAMENTO ANUAL
 # ============================================================
 
-st.subheader("📋 Planejamento Anual")
+st.subheader("📋 Planejamento Anual por Cenário")
 
 
 tab1, tab2, tab3, tab4 = st.tabs([
-    "P1 — Requerimento +300",
-    "P2 — Requerimento +260",
-    "P3 — Compulsória +300",
-    "P4 — Compulsória +260"
+    "Cenário 01",
+    "Cenário 02",
+    "Cenário 03",
+    "Cenário 04"
 ])
 
 
 # ============================================================
-# P1
+# CENÁRIO 01
 # ============================================================
 
 with tab1:
 
     st.markdown(
-        "**Regra:** saídas por ano de requerimento "
-        "+ 300 novos efetivos."
+        """
+        ### Cenário 01 — Requerimento +300
+
+        **Regra:** retirar os servidores que atingirem o ano
+        de requerimento e acrescentar 300 novos efetivos.
+        """
     )
 
     st.dataframe(
-        df_p1,
+        df_cenario_01,
         use_container_width=True,
         hide_index=True
     )
 
 
 # ============================================================
-# P2
+# CENÁRIO 02
 # ============================================================
 
 with tab2:
 
     st.markdown(
-        "**Regra:** saídas por ano de requerimento "
-        "+ 260 novos efetivos."
+        """
+        ### Cenário 02 — Requerimento +260
+
+        **Regra:** retirar os servidores que atingirem o ano
+        de requerimento e acrescentar 260 novos efetivos.
+        """
     )
 
     st.dataframe(
-        df_p2,
+        df_cenario_02,
         use_container_width=True,
         hide_index=True
     )
 
 
 # ============================================================
-# P3
+# CENÁRIO 03
 # ============================================================
 
 with tab3:
 
     st.markdown(
-        "**Regra:** saídas por ano de compulsória "
-        "+ 300 novos efetivos."
+        """
+        ### Cenário 03 — Compulsória +300
+
+        **Regra:** retirar os servidores que atingirem o ano
+        de compulsória e acrescentar 300 novos efetivos.
+        """
     )
 
     st.dataframe(
-        df_p3,
+        df_cenario_03,
         use_container_width=True,
         hide_index=True
     )
 
 
 # ============================================================
-# P4
+# CENÁRIO 04
 # ============================================================
 
 with tab4:
 
     st.markdown(
-        "**Regra:** saídas por ano de compulsória "
-        "+ 260 novos efetivos."
+        """
+        ### Cenário 04 — Compulsória +260
+
+        **Regra:** retirar os servidores que atingirem o ano
+        de compulsória e acrescentar 260 novos efetivos.
+        """
     )
 
     st.dataframe(
-        df_p4,
+        df_cenario_04,
         use_container_width=True,
         hide_index=True
     )
@@ -712,17 +756,17 @@ df_comparacao = pd.DataFrame({
 
     "Ano": anos,
 
-    "P1 — Req. +300":
-        df_p1["Efetivo projetado"].values,
+    "Cenário 01 — Req. +300":
+        df_cenario_01["Efetivo projetado"].values,
 
-    "P2 — Req. +260":
-        df_p2["Efetivo projetado"].values,
+    "Cenário 02 — Req. +260":
+        df_cenario_02["Efetivo projetado"].values,
 
-    "P3 — Comp. +300":
-        df_p3["Efetivo projetado"].values,
+    "Cenário 03 — Comp. +300":
+        df_cenario_03["Efetivo projetado"].values,
 
-    "P4 — Comp. +260":
-        df_p4["Efetivo projetado"].values
+    "Cenário 04 — Comp. +260":
+        df_cenario_04["Efetivo projetado"].values
 
 })
 
@@ -747,7 +791,7 @@ st.dataframe(
 
 
 # ============================================================
-# RESUMO PARA 2035
+# RESUMO — 2035
 # ============================================================
 
 st.subheader("🎯 Situação Projetada para 2035")
@@ -758,57 +802,57 @@ r1, r2, r3, r4 = st.columns(4)
 
 with r1:
 
-    st.markdown("### P1")
+    st.markdown("### Cenário 01")
 
     st.metric(
         "Efetivo em 2035",
-        f"{p1_final:,}".replace(",", ".")
+        f"{cenario_01_final:,}".replace(",", ".")
     )
 
     st.caption(
-        f"Variação: {var_p1:+,}".replace(",", ".")
+        f"Variação: {variacao_cenario_01:+,}".replace(",", ".")
     )
 
 
 with r2:
 
-    st.markdown("### P2")
+    st.markdown("### Cenário 02")
 
     st.metric(
         "Efetivo em 2035",
-        f"{p2_final:,}".replace(",", ".")
+        f"{cenario_02_final:,}".replace(",", ".")
     )
 
     st.caption(
-        f"Variação: {var_p2:+,}".replace(",", ".")
+        f"Variação: {variacao_cenario_02:+,}".replace(",", ".")
     )
 
 
 with r3:
 
-    st.markdown("### P3")
+    st.markdown("### Cenário 03")
 
     st.metric(
         "Efetivo em 2035",
-        f"{p3_final:,}".replace(",", ".")
+        f"{cenario_03_final:,}".replace(",", ".")
     )
 
     st.caption(
-        f"Variação: {var_p3:+,}".replace(",", ".")
+        f"Variação: {variacao_cenario_03:+,}".replace(",", ".")
     )
 
 
 with r4:
 
-    st.markdown("### P4")
+    st.markdown("### Cenário 04")
 
     st.metric(
         "Efetivo em 2035",
-        f"{p4_final:,}".replace(",", ".")
+        f"{cenario_04_final:,}".replace(",", ".")
     )
 
     st.caption(
-        f"Variação: {var_p4:+,}".replace(",", ".")
+        f"Variação: {variacao_cenario_04:+,}".replace(",", ".")
     )
 
 
@@ -822,45 +866,99 @@ st.subheader("📌 Resumo Gerencial")
 resumo_gerencial = pd.DataFrame({
 
     "Cenário": [
-        "P1 — Requerimento +300",
-        "P2 — Requerimento +260",
-        "P3 — Compulsória +300",
-        "P4 — Compulsória +260"
+
+        "Cenário 01 — Requerimento +300",
+
+        "Cenário 02 — Requerimento +260",
+
+        "Cenário 03 — Compulsória +300",
+
+        "Cenário 04 — Compulsória +260"
+
     ],
 
     "Efetivo Inicial": [
+
         efetivo_inicial,
+
         efetivo_inicial,
+
         efetivo_inicial,
+
         efetivo_inicial
+
     ],
 
     "Saídas Acumuladas": [
-        int(df_p1["Saídas"].sum()),
-        int(df_p2["Saídas"].sum()),
-        int(df_p3["Saídas"].sum()),
-        int(df_p4["Saídas"].sum())
+
+        int(
+            df_cenario_01["Saídas"].sum()
+        ),
+
+        int(
+            df_cenario_02["Saídas"].sum()
+        ),
+
+        int(
+            df_cenario_03["Saídas"].sum()
+        ),
+
+        int(
+            df_cenario_04["Saídas"].sum()
+        )
+
     ],
 
     "Entradas Acumuladas": [
-        int(df_p1["Entradas"].sum()),
-        int(df_p2["Entradas"].sum()),
-        int(df_p3["Entradas"].sum()),
-        int(df_p4["Entradas"].sum())
+
+        int(
+            df_cenario_01["Entradas"].sum()
+        ),
+
+        int(
+            df_cenario_02["Entradas"].sum()
+        ),
+
+        int(
+            df_cenario_03["Entradas"].sum()
+        ),
+
+        int(
+            df_cenario_04["Entradas"].sum()
+        )
+
     ],
 
     "Saldo Acumulado": [
-        int(df_p1["Saldo do ano"].sum()),
-        int(df_p2["Saldo do ano"].sum()),
-        int(df_p3["Saldo do ano"].sum()),
-        int(df_p4["Saldo do ano"].sum())
+
+        int(
+            df_cenario_01["Saldo do ano"].sum()
+        ),
+
+        int(
+            df_cenario_02["Saldo do ano"].sum()
+        ),
+
+        int(
+            df_cenario_03["Saldo do ano"].sum()
+        ),
+
+        int(
+            df_cenario_04["Saldo do ano"].sum()
+        )
+
     ],
 
     "Efetivo Projetado 2035": [
-        p1_final,
-        p2_final,
-        p3_final,
-        p4_final
+
+        cenario_01_final,
+
+        cenario_02_final,
+
+        cenario_03_final,
+
+        cenario_04_final
+
     ]
 
 })
