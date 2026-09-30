@@ -86,7 +86,7 @@ st.html(
         margin-bottom:10px;
         font-weight:700;
     ">
-        📊 Dashboard de Efetivo
+        
     </h1>
     """
 )
