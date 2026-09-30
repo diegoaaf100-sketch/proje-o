@@ -7,10 +7,6 @@ from pathlib import Path
 from google.oauth2.service_account import Credentials
 
 
-# ============================================================
-# CONFIGURAÇÃO DA PÁGINA
-# ============================================================
-
 st.set_page_config(
     page_title="Dashboard de Efetivo",
     page_icon="📊",
@@ -19,17 +15,18 @@ st.set_page_config(
 
 
 # ============================================================
-# IMAGENS DO TOPO
+# CAMINHOS DAS IMAGENS
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
+PASTA_IMAGENS = BASE_DIR / "imagens"
 
-IMAGEM_DGP = BASE_DIR / "imagens" / "brasao_dgp.png"
-IMAGEM_CBMPE = BASE_DIR / "imagens" / "brasao_cbmpe.png"
+IMAGEM_DGP = PASTA_IMAGENS / "brasao_dgp.png"
+IMAGEM_CBMPE = PASTA_IMAGENS / "brasao_cbmpe.png"
 
 
 # ============================================================
-# BRASÕES CENTRALIZADOS NO TOPO
+# IMAGENS DO CABEÇALHO
 # ============================================================
 
 col_esquerda, col_centro, col_direita = st.columns([1, 2, 1])
@@ -39,35 +36,35 @@ with col_centro:
     col_img1, col_img2 = st.columns(2)
 
     with col_img1:
-
-        if IMAGEM_DGP.exists():
-
-            st.image(
-                str(IMAGEM_DGP),
-                width=150
-            )
-
+        if IMAGEM_DGP.is_file():
+            st.image(str(IMAGEM_DGP), width=150)
         else:
-
-            st.warning(
-                "Imagem DGP não encontrada: imagens/brasao_dgp.png"
+            st.error(
+                f"Imagem DGP não encontrada: {IMAGEM_DGP}"
             )
 
     with col_img2:
-
-        if IMAGEM_CBMPE.exists():
-
-            st.image(
-                str(IMAGEM_CBMPE),
-                width=150
-            )
-
+        if IMAGEM_CBMPE.is_file():
+            st.image(str(IMAGEM_CBMPE), width=150)
         else:
-
-            st.warning(
-                "Imagem CBMPE não encontrada: imagens/brasao_cbmpe.png"
+            st.error(
+                f"Imagem CBMPE não encontrada: {IMAGEM_CBMPE}"
             )
 
+
+st.html(
+    """
+    <h1 style="
+        text-align:center;
+        font-size:42px;
+        margin-top:15px;
+        margin-bottom:10px;
+        font-weight:700;
+    ">
+        📊 Dashboard de Efetivo
+    </h1>
+    """
+)
 
 # ============================================================
 # TÍTULO
