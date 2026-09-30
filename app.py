@@ -335,30 +335,38 @@ st.dataframe(
 st.divider()
 
 
-st.markdown(
+# ============================================================
+# TÍTULO CENTRALIZADO
+# ============================================================
+
+st.html(
     """
     <div style="
         text-align: center;
-        margin-top: 20px;
-        margin-bottom: 35px;
+        padding-top: 10px;
+        padding-bottom: 30px;
     ">
 
-        <h1>
+        <div style="
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        ">
             📊 Painel de Planejamento de Efetivo
-        </h1>
+        </div>
 
-        <p style="
-            font-size: 18px;
-            line-height: 1.6;
+        <div style="
+            font-size: 1.05rem;
+            line-height: 1.7;
+            opacity: 0.75;
         ">
             Projeção do efetivo entre 2026 e 2035.<br>
             O ano de 2026 representa o efetivo atual da planilha.<br>
             As alterações começam a partir de 2027.
-        </p>
+        </div>
 
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 
@@ -423,13 +431,16 @@ def construir_cenario(
 
     linhas = []
 
-    # O efetivo atual da planilha é o efetivo de 2026.
+    # ========================================================
+    # EFETIVO INICIAL
+    # ========================================================
+
     efetivo_atual = efetivo_inicial
 
     for ano in anos:
 
         # ====================================================
-        # 2026 — MANTER O EFETIVO ATUAL
+        # 2026 — MANTER EXATAMENTE O EFETIVO ATUAL
         # ====================================================
 
         if ano == ANO_INICIAL:
@@ -459,7 +470,7 @@ def construir_cenario(
 
 
         # ====================================================
-        # A PARTIR DE 2027
+        # A PARTIR DE 2027 — CALCULAR SAÍDAS
         # ====================================================
 
         if tipo_saida == "requerimento":
@@ -472,27 +483,31 @@ def construir_cenario(
 
 
         # ====================================================
-        # NOVAS ENTRADAS
+        # CALCULAR ENTRADAS
         # ====================================================
 
         entradas = novas_entradas
 
 
         # ====================================================
-        # SALDO DO ANO
+        # CALCULAR SALDO
         # ====================================================
 
         saldo = entradas - saidas
 
 
         # ====================================================
-        # EFETIVO PROJETADO
+        # CALCULAR EFETIVO PROJETADO
         # ====================================================
 
         efetivo_projetado = (
             efetivo_atual + saldo
         )
 
+
+        # ====================================================
+        # ADICIONAR LINHA
+        # ====================================================
 
         linhas.append({
 
@@ -516,8 +531,9 @@ def construir_cenario(
         })
 
 
-        # O resultado deste ano passa a ser
-        # o efetivo inicial do próximo ano.
+        # ====================================================
+        # O PROJETADO DESTE ANO SERÁ O INICIAL DO PRÓXIMO
+        # ====================================================
 
         efetivo_atual = efetivo_projetado
 
@@ -609,9 +625,10 @@ with c4:
 # ESPAÇAMENTO ENTRE INDICADORES E CENÁRIOS
 # ============================================================
 
-st.markdown(
-    "<div style='height: 45px;'></div>",
-    unsafe_allow_html=True
+st.html(
+    """
+    <div style="height: 45px;"></div>
+    """
 )
 
 
@@ -621,6 +638,10 @@ st.markdown(
 
 st.subheader("📈 Cenários de Planejamento")
 
+
+# ============================================================
+# RESULTADO FINAL DE CADA CENÁRIO
+# ============================================================
 
 cenario_01_final = int(
     df_cenario_01.iloc[-1]["Efetivo projetado"]
@@ -639,6 +660,10 @@ cenario_04_final = int(
 )
 
 
+# ============================================================
+# VARIAÇÃO DE CADA CENÁRIO
+# ============================================================
+
 variacao_cenario_01 = (
     cenario_01_final - efetivo_inicial
 )
@@ -655,6 +680,10 @@ variacao_cenario_04 = (
     cenario_04_final - efetivo_inicial
 )
 
+
+# ============================================================
+# CARDS DOS CENÁRIOS
+# ============================================================
 
 s1, s2, s3, s4 = st.columns(4)
 
@@ -720,7 +749,7 @@ with tab1:
         """
         ### Cenário 01 — Requerimento +300
 
-        **2026:** mantém o efetivo atual.
+        **2026:** mantém exatamente o efetivo atual.
 
         **A partir de 2027:** saem os servidores que atingirem
         o ano de requerimento e entram 300 novos efetivos por ano.
@@ -744,7 +773,7 @@ with tab2:
         """
         ### Cenário 02 — Requerimento +260
 
-        **2026:** mantém o efetivo atual.
+        **2026:** mantém exatamente o efetivo atual.
 
         **A partir de 2027:** saem os servidores que atingirem
         o ano de requerimento e entram 260 novos efetivos por ano.
@@ -768,7 +797,7 @@ with tab3:
         """
         ### Cenário 03 — Compulsória +300
 
-        **2026:** mantém o efetivo atual.
+        **2026:** mantém exatamente o efetivo atual.
 
         **A partir de 2027:** saem os servidores que atingirem
         o ano de compulsória e entram 300 novos efetivos por ano.
@@ -792,7 +821,7 @@ with tab4:
         """
         ### Cenário 04 — Compulsória +260
 
-        **2026:** mantém o efetivo atual.
+        **2026:** mantém exatamente o efetivo atual.
 
         **A partir de 2027:** saem os servidores que atingirem
         o ano de compulsória e entram 260 novos efetivos por ano.
