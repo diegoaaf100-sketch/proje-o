@@ -121,6 +121,38 @@ def carregar_dados():
             df["dias_compulsoria"] / 365.25
         )
 
+    # ========================================================
+    # CLASSIFICAÇÃO DE OFICIAIS
+    # ========================================================
+
+    postos_oficiais = [
+        "Cel",
+        "Tem Cel",
+        "Maj QOC",
+        "Maj QOA",
+        "Cap QOA",
+        "Cap QOC",
+        "1° Ten QOC",
+        "1° Ten QOA",
+        "2° Ten QOC",
+        "2° Ten QOA",
+        "Aspirante"
+    ]
+
+    # ========================================================
+    # CRIAR GRUPO
+    #
+    # Tudo que estiver na lista acima = Oficiais.
+    # Todo o restante = Praças.
+    # ========================================================
+
+    df["grupo"] = df["posto_graduacao"].apply(
+        lambda x:
+        "Oficiais"
+        if str(x).strip() in postos_oficiais
+        else "Praças"
+    )
+
     return df
 
 
@@ -159,6 +191,22 @@ st.caption(
 # ============================================================
 
 st.sidebar.header("🔎 Filtros")
+
+
+# ============================================================
+# FILTRO — GRUPO
+# ============================================================
+
+grupos = [
+    "Todos",
+    "Oficiais",
+    "Praças"
+]
+
+filtro_grupo = st.sidebar.selectbox(
+    "Grupo",
+    grupos
+)
 
 
 # ============================================================
@@ -216,10 +264,24 @@ filtro_ano_compulsoria = st.sidebar.selectbox(
 
 
 # ============================================================
-# APLICAR FILTROS
+# BASE PARA O GRUPO
 # ============================================================
 
-resultado = df.copy()
+df_grupo = df.copy()
+
+
+if filtro_grupo != "Todos":
+
+    df_grupo = df_grupo[
+        df_grupo["grupo"] == filtro_grupo
+    ]
+
+
+# ============================================================
+# APLICAR FILTROS PARA A TABELA E INDICADORES
+# ============================================================
+
+resultado = df_grupo.copy()
 
 
 if filtro_posto != "Todos":
@@ -312,6 +374,7 @@ st.subheader("👥 Dados")
 colunas_exibicao = [
     "numero",
     "matricula",
+    "grupo",
     "posto_graduacao",
     "nome",
     "anos_requerimento",
@@ -371,6 +434,24 @@ st.html(
 
 
 # ============================================================
+# INFORMAÇÃO DO GRUPO SELECIONADO
+# ============================================================
+
+if filtro_grupo == "Todos":
+
+    descricao_grupo = "Todos os grupos"
+
+else:
+
+    descricao_grupo = filtro_grupo
+
+
+st.caption(
+    f"Planejamento considerando: **{descricao_grupo}**"
+)
+
+
+# ============================================================
 # PARÂMETROS DOS CENÁRIOS
 # ============================================================
 
@@ -393,26 +474,38 @@ anos = list(
 
 # ============================================================
 # EFETIVO INICIAL
+#
+# IMPORTANTE:
+#
+# O planejamento utiliza o grupo selecionado,
+# mas NÃO utiliza os filtros de ano ou posto.
+#
+# Isso evita que selecionar um ano de requerimento,
+# por exemplo, altere artificialmente o efetivo de 2026.
 # ============================================================
 
-efetivo_inicial = len(df)
+efetivo_inicial = len(df_grupo)
 
 
 # ============================================================
-# SAÍDAS POR ANO
+# SAÍDAS POR ANO — REQUERIMENTO
 # ============================================================
 
 saidas_requerimento = {
     ano: int(
-        df["ano_requerimento"].eq(ano).sum()
+        df_grupo["ano_requerimento"].eq(ano).sum()
     )
     for ano in anos
 }
 
 
+# ============================================================
+# SAÍDAS POR ANO — COMPULSÓRIA
+# ============================================================
+
 saidas_compulsoria = {
     ano: int(
-        df["ano_compulsoria"].eq(ano).sum()
+        df_grupo["ano_compulsoria"].eq(ano).sum()
     )
     for ano in anos
 }
@@ -429,8 +522,12 @@ def construir_cenario(
 
     linhas = []
 
-    # 2026 é o ponto de partida.
+    # ========================================================
+    # 2026 É O PONTO DE PARTIDA
+    # ========================================================
+
     efetivo_atual = efetivo_inicial
+
 
     for ano in anos:
 
@@ -485,7 +582,7 @@ def construir_cenario(
 
 
         # ====================================================
-        # SALDO
+        # SALDO DO ANO
         # ====================================================
 
         saldo = entradas - saidas
@@ -499,6 +596,10 @@ def construir_cenario(
             efetivo_atual + saldo
         )
 
+
+        # ====================================================
+        # ADICIONAR LINHA
+        # ====================================================
 
         linhas.append({
 
@@ -522,8 +623,10 @@ def construir_cenario(
         })
 
 
-        # O projetado deste ano passa a ser
-        # o inicial do próximo ano.
+        # ====================================================
+        # O PROJETADO DESTE ANO PASSA A SER O INICIAL
+        # DO ANO SEGUINTE
+        # ====================================================
 
         efetivo_atual = efetivo_projetado
 
@@ -863,7 +966,7 @@ df_comparacao = pd.DataFrame({
 
 
 # ============================================================
-# GRÁFICO
+# GRÁFICO DE BARRAS
 # ============================================================
 
 st.bar_chart(
@@ -973,6 +1076,18 @@ resumo_gerencial = pd.DataFrame({
         "Cenário 03 — Compulsória +300",
 
         "Cenário 04 — Compulsória +260"
+
+    ],
+
+    "Grupo": [
+
+        descricao_grupo,
+
+        descricao_grupo,
+
+        descricao_grupo,
+
+        descricao_grupo
 
     ],
 
